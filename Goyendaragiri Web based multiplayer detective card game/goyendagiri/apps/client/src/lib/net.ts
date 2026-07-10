@@ -3,8 +3,15 @@ import { Client, Room } from 'colyseus.js';
 import { writable, type Writable } from 'svelte/store';
 import type { ClientView } from '@goyendagiri/rules';
 
+const isSecure = location.protocol === 'https:';
+const defaultProtocol = isSecure ? 'wss' : 'ws';
+
+// Only append port 2567 if running locally on localhost or 127.0.0.1
+const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const defaultHost = isLocalhost ? `${location.hostname}:2567` : location.hostname;
+
 export const SERVER_URL =
-  (import.meta as any).env?.VITE_SERVER_URL ?? `ws://${location.hostname}:2567`;
+  (import.meta as any).env?.VITE_SERVER_URL ?? `${defaultProtocol}://${defaultHost}`;
 
 export interface ChatMsg { seat: number; name: string; text: string }
 
