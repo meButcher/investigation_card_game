@@ -62,7 +62,7 @@ export class GameRoom extends Room {
         settings: {
           difficulty: [3, 4, 5].includes(p.difficulty) ? p.difficulty : st.difficulty,
           timerSec: p.timerSec === null || [30, 45, 60].includes(p.timerSec) ? p.timerSec : st.timerSec,
-          rounds: st.rounds,
+          rounds: [2, 3, 4, 5].includes(p.rounds) ? p.rounds : st.rounds,
           detectiveMode,
           verdictMode,
         },

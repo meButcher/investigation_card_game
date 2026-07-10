@@ -14,6 +14,12 @@
   function tapPlayer(seat) {
     if (isCreator && volunteerMode) send('updateSettings', { volunteerSeat: v.volunteerSeat === seat ? null : seat });
   }
+  function cycleRounds() {
+    if (!isCreator) return;
+    const current = v.settings.rounds;
+    const next = current === 3 ? 4 : current === 4 ? 5 : current === 5 ? 2 : 3;
+    send('updateSettings', { rounds: next });
+  }
 </script>
 
 <div class="screen">
@@ -60,21 +66,35 @@
       </div>
     </div>
     <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
-      <div class="panel">
-        <h3>⚙ সেটিংস · Game settings</h3>
-        <div class="setting"><span>Difficulty</span>
+      <div class="settings-card">
+        <h3>⚙ সেটিংস • GAME SETTINGS</h3>
+        
+        <div class="setting">
+          <span class="setting-label">📊 DIFFICULTY</span>
           <span class="seg">
             {#each [3, 4, 5] as d}
               <button class:on={v.settings.difficulty === d} disabled={!isCreator}
-                on:click={() => send('updateSettings', { difficulty: d })}>{d === 3 ? 'সহজ' : d === 4 ? 'সাধারণ' : 'কঠিন'} {d}</button>
+                on:click={() => send('updateSettings', { difficulty: d })}>{d === 3 ? 'সহজ ৩' : d === 4 ? 'মধ্যম ৪' : 'কঠিন ৫'}</button>
             {/each}
           </span>
         </div>
-        <div class="setting"><span>Rounds</span><span class="goldtext" style="font-weight:600">{v.settings.rounds}</span></div>
-        <div class="setting"><span>Accomplice + Witness</span>
-          <span class="goldtext" style="font-weight:600">{v.seats.length >= 6 ? 'Auto (6+ players)' : 'No (4–5)'}</span>
+        
+        <div class="setting">
+          <span class="setting-label">🔄 ROUNDS</span>
+          <button class="cycle-btn" disabled={!isCreator} on:click={cycleRounds}>
+            {v.settings.rounds} <span class="chevron">›</span>
+          </button>
         </div>
-        <div class="setting"><span>Presentation timer</span>
+        
+        <div class="setting">
+          <span class="setting-label">👥 ACCOMPLICE + WITNESS</span>
+          <span class="dropdown-style">
+            {v.seats.length >= 6 ? 'Auto (6+)' : 'No (4-5)'} <span class="arrow">▼</span>
+          </span>
+        </div>
+        
+        <div class="setting">
+          <span class="setting-label">⏱ PRESENTATION TIMER</span>
           <span class="seg">
             {#each timers as t}
               <button class:on={v.settings.timerSec === t} disabled={!isCreator}
@@ -82,27 +102,19 @@
             {/each}
           </span>
         </div>
-        <div class="setting"><span>⚖️ Verdict</span>
-          <span class="seg">
-            <button class:on={v.settings.verdictMode === 'auto'} disabled={!isCreator}
-              on:click={() => send('updateSettings', { verdictMode: 'auto' })}>Auto</button>
-            <button class:on={v.settings.verdictMode === 'detective'} disabled={!isCreator}
-              on:click={() => send('updateSettings', { verdictMode: 'detective' })}>Detective</button>
-          </span>
-        </div>
-        <div class="setting" style="border-bottom:none"><span>🎩 Detective</span>
+        
+        <div class="setting" style="border-bottom:none">
+          <span class="setting-label">🎩 DETECTIVE</span>
           <span class="seg">
             <button class:on={v.settings.detectiveMode === 'random'} disabled={!isCreator}
-              on:click={() => send('updateSettings', { detectiveMode: 'random' })}>Random</button>
+              on:click={() => send('updateSettings', { detectiveMode: 'random' })}>RANDOM</button>
             <button class:on={v.settings.detectiveMode === 'volunteer'} disabled={!isCreator}
-              on:click={() => send('updateSettings', { detectiveMode: 'volunteer' })}>Volunteer</button>
+              on:click={() => send('updateSettings', { detectiveMode: 'volunteer' })}>VOLUNTEER</button>
           </span>
         </div>
+        
         {#if volunteerMode && v.volunteerSeat === null}
-          <p class="dim" style="font-size:.68rem;margin-top:6px">No volunteer chosen yet — {isCreator ? 'tap a player on the left' : 'the host will pick one'}. Falls back to random if unset.</p>
-        {/if}
-        {#if v.settings.verdictMode === 'detective'}
-          <p class="dim" style="font-size:.68rem;margin-top:6px">⚖️ Orchestrated mode: the game will NOT auto-judge accusations — the Detective clicks Yes/No, like the tabletop.</p>
+          <p class="warn-text">No volunteer chosen yet — {isCreator ? 'tap a player on the left' : 'the host will pick one'}. Falls back to random if unset.</p>
         {/if}
       </div>
       <div class="panel dim" style="font-size:.75rem">🎙 Voice: create a Discord call and share it here. In-game text chat is always available.</div>
@@ -119,5 +131,154 @@
 </div>
 
 <style>
-  .setting{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.82rem;flex-wrap:wrap}
+  .settings-card {
+    position: relative;
+    background: #ded6c5; /* Antique warm paper/parchment background */
+    border: 1px solid #c9c0ae;
+    color: #352e25;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    border-radius: 12px;
+    padding: 24px 20px 20px 20px;
+    margin-top: 14px; /* Space for top tab clip */
+  }
+  
+  /* The dark brown top clip/handle of the notepad */
+  .settings-card::before {
+    content: "";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 24px;
+    background: linear-gradient(180deg, #44362d, #2c201a);
+    border-radius: 6px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+    border: 1px solid #231914;
+    z-index: 10;
+  }
+  
+  .settings-card h3 {
+    font-family: 'Noto Serif Bengali', 'Hind Siliguri', serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #2b251f !important;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1.5px solid #c9c0ac;
+    padding-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  
+  .settings-card .setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #cbbfa9;
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #554d3f;
+  }
+  
+  .settings-card .setting-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    color: #554d3f;
+    letter-spacing: 0.5px;
+  }
+  
+  .settings-card .seg {
+    display: inline-flex;
+    background: #cebfad; /* Beige base of segment control */
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid rgba(0,0,0,0.04);
+  }
+  
+  .settings-card .seg button {
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: #5e5445;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .settings-card .seg button:hover:not(:disabled) {
+    color: #352e25;
+  }
+  
+  .settings-card .seg button.on {
+    background: #e2ae3c; /* Selected button gold/mustard background */
+    color: #1a1206;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.18);
+  }
+  
+  .settings-card .seg button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .settings-card .cycle-btn {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #2b251f;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+  
+  .settings-card .cycle-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.05);
+  }
+  
+  .settings-card .cycle-btn:disabled {
+    cursor: default;
+  }
+  
+  .settings-card .cycle-btn .chevron {
+    color: #6d6455;
+    font-size: 1.1rem;
+    font-weight: normal;
+  }
+  
+  .settings-card .dropdown-style {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #2b251f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    cursor: default;
+  }
+  
+  .settings-card .dropdown-style .arrow {
+    font-size: 0.62rem;
+    color: #6d6455;
+  }
+  
+  .settings-card .warn-text {
+    font-size: 0.72rem;
+    color: #72624e;
+    margin-top: 8px;
+    line-height: 1.35;
+  }
 </style>
