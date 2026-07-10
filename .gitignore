@@ -1,0 +1,22 @@
+# Node
+**/node_modules/
+**/dist/
+
+# Configuration and temporary directories
+.claude/
+.claude-flow/
+
+# Environments and logs
+**/.env
+**/.env.*
+**/*.log
+**/.DS_Store
+
+# IDE and tool files
+.idea/
+**/.idea/
+graphify-out/
+
+# Crash/dump files
+*.stackdump
+**/*.stackdump

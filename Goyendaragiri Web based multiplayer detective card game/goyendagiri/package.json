@@ -1,0 +1,13 @@
+{
+  "name": "goyendagiri",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["packages/rules", "apps/server", "apps/client"],
+  "scripts": {
+    "test": "npm -w @goyendagiri/rules run test",
+    "e2e": "node apps/server/test/e2e-botgame.mjs",
+    "dev:server": "npm -w @goyendagiri/server run dev",
+    "dev:client": "npm -w @goyendagiri/client run dev",
+    "build:client": "npm -w @goyendagiri/client run build"
+  }
+}

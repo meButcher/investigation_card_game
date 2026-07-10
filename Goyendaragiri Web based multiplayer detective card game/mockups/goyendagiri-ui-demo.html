@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>গোয়েন্দাগিরি — UI Demo (Desktop & Mobile)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Candlelit Noir palette (v1.4) — warm plum-brown darks + antique gold */
+  --bg:#160f14; --panel:#241722; --panel2:#2b1c28; --panel3:#3a2636;
+  --ink:#efe3c8; --dim:#a58d7c; --line:#4a3440;
+  --gold:#d9a94e; --gold-dim:#8f6d33; --gold-hi:#f0cf7a; --gold-lo:#a87b2e;
+  --evidence:#f2c94c; --evidence-dark:#5c4a12;   /* card identity colors unchanged on purpose */
+  --means:#5b8dd9; --means-dark:#1d3050;
+  --danger:#c8503f; --good:#7dab6d;
+  --candle:rgba(240,180,90,.10);
+  font-size:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  /* ART HOOK: drop art/bg-desk.webp beside this file and it appears under the scrim */
+  background:
+    radial-gradient(ellipse at 12% 95%, var(--candle), transparent 45%),
+    radial-gradient(ellipse at 88% 90%, rgba(240,180,90,.06), transparent 40%),
+    linear-gradient(rgba(12,7,10,.86), rgba(12,7,10,.93)),
+    url('art/bg-desk.webp') center/cover no-repeat,
+    #0c070a;
+  color:var(--ink);font-family:'Hind Siliguri',sans-serif;min-height:100vh;padding:16px}
+h1,h2,h3,.serif{font-family:'Noto Serif Bengali','Hind Siliguri',serif}
+h2,h3{letter-spacing:.4px}
+/* ornate double-ring frame on major surfaces + 9-slice ART HOOK (art/frame-panel.png) */
+.panel,.modal,.memo,.peek,.tile,.seat,.witness-hunt,.role-card,.sheet,.ecard{
+  box-shadow:0 0 0 1px rgba(217,169,78,.16), 0 6px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(240,207,122,.06);
+  border-image-source:url('art/frame-panel.png'); border-image-slice:34 fill; border-image-width:14px; border-image-repeat:stretch}
+/* candlelight vignette + film grain over the whole device */
+.device::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:50;
+  background:
+    radial-gradient(ellipse at 50% 120%, var(--candle), transparent 55%),
+    radial-gradient(ellipse at 50% 45%, transparent 60%, rgba(8,4,7,.45) 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.9 0 0 0 0 0.75 0 0 0 0 0.5 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ===== Demo chrome (not part of the game UI) ===== */
+.demo-bar{max-width:1280px;margin:0 auto 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.demo-bar h1{font-size:1.15rem;color:var(--gold)}
+.demo-bar h1 span{color:var(--dim);font-size:.8rem;font-family:'Hind Siliguri';font-weight:400;margin-left:8px}
+.toggle-group{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:4px}
+.toggle-group button{background:none;border:none;color:var(--dim);font-family:inherit;font-size:.85rem;padding:6px 14px;border-radius:7px;cursor:pointer}
+.toggle-group button.on{background:var(--gold);color:#1a1206;font-weight:600}
+.screen-tabs{max-width:1280px;margin:0 auto 16px;display:flex;flex-wrap:wrap;gap:4px}
+.screen-tabs button{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);color:var(--dim);font-family:inherit;font-size:.85rem;padding:8px 20px;cursor:pointer;
+  clip-path:polygon(14px 0,100% 0,calc(100% - 14px) 100%,0 100%);border-radius:0}
+.screen-tabs button.on{color:#241505;background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));font-weight:700;text-shadow:0 1px 0 rgba(255,255,255,.3)}
+.note{max-width:1280px;margin:0 auto 14px;font-size:.8rem;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold);padding:8px 12px;border-radius:8px}
+
+/* ===== Stage / device frames ===== */
+.stage{max-width:1280px;margin:0 auto;display:flex;justify-content:center}
+.device{
+  /* ART HOOK: art/bg-scene.webp = the room's ambient scene behind all screens */
+  background:linear-gradient(rgba(22,15,20,.82),rgba(22,15,20,.92)), url('art/bg-scene.webp') center/cover no-repeat, var(--bg);
+  border:1px solid var(--gold-dim);overflow:hidden;position:relative}
+.stage.desktop .device{width:1280px;max-width:100%;height:760px;border-radius:12px}
+.stage.mobile .device{width:392px;height:800px;border-radius:36px;border:8px solid #1c2333;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.screen{display:none;height:100%;overflow-y:auto;position:relative}
+.screen.on{display:flex;flex-direction:column}
+
+/* ===== Shared game UI ===== */
+.topbar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(180deg,rgba(58,38,54,.9),rgba(36,23,34,.94));border-bottom:1px solid var(--gold-dim);box-shadow:0 2px 12px rgba(0,0,0,.4);flex-shrink:0}
+.logo{font-family:'Noto Serif Bengali';font-weight:800;color:var(--gold);font-size:1.05rem;letter-spacing:.5px;white-space:nowrap}
+.phase-chip{background:var(--panel3);border:1px solid var(--gold-dim);color:var(--gold);font-size:.75rem;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.round-pips{display:flex;gap:4px}
+.round-pips i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.round-pips i.done{background:var(--gold)}
+.round-pips i.now{background:var(--gold);box-shadow:0 0 6px var(--gold)}
+.timer{margin-left:auto;font-variant-numeric:tabular-nums;background:var(--panel3);border:1px solid var(--line);padding:3px 12px;border-radius:8px;font-size:.9rem;color:var(--ink);white-space:nowrap}
+.timer.warn{color:var(--danger);border-color:var(--danger)}
+.lang-pill{font-size:.7rem;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:2px 8px;cursor:default}
+.stage.mobile .logo{font-size:.9rem}
+.stage.mobile .topbar{padding:8px 10px;gap:6px;flex-wrap:wrap}
+
+/* Tiles */
+.tile{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.tile h4{font-size:.8rem;color:var(--gold);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.tile h4 em{font-style:normal;font-size:.62rem;color:var(--dim);font-weight:400}
+.tile.special{border-color:var(--gold-dim)}
+.clues{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.clue{font-size:.78rem;color:var(--ink);background:rgba(255,255,255,.03);border:1px solid transparent;border-radius:6px;padding:3px 7px;position:relative}
+.clue small{display:block;font-size:.6rem;color:var(--dim)}
+.clue.marked{border-color:var(--gold);background:rgba(224,168,60,.12)}
+.clue.marked::after{content:"🎩";position:absolute;top:-10px;right:-4px;font-size:.9rem;filter:drop-shadow(0 2px 2px #000)}
+.clue.placing{border-style:dashed;border-color:var(--dim);cursor:pointer}
+
+/* Cards */
+.mini-card{width:44px;height:60px;border-radius:5px;padding:3px;font-size:.5rem;line-height:1.15;overflow:hidden;flex-shrink:0;border:1px solid rgba(0,0,0,.4);color:#111}
+.mini-card.ev{background:linear-gradient(170deg,#f7d96b,var(--evidence))}
+.mini-card.mn{background:linear-gradient(170deg,#7ba4e0,var(--means));color:#0a1526}
+.mini-card b{display:block;font-size:.52rem;border-bottom:1px solid rgba(0,0,0,.25);margin-bottom:2px;padding-bottom:1px}
+.mini-card.selected{outline:2px solid var(--gold);outline-offset:1px;box-shadow:0 0 10px rgba(224,168,60,.7)}
+.big-card{width:96px;height:132px;border-radius:9px;padding:8px;font-size:.68rem;border:1px solid rgba(0,0,0,.4);color:#151007;cursor:pointer}
+.big-card.ev{background:linear-gradient(170deg,#f7d96b,var(--evidence))}
+.big-card.mn{background:linear-gradient(170deg,#7ba4e0,var(--means));color:#0a1526}
+.big-card b{display:block;font-size:.72rem;border-bottom:1px solid rgba(0,0,0,.25);margin-bottom:4px;padding-bottom:3px}
+.big-card small{font-size:.58rem;opacity:.75;display:block;margin-top:2px}
+.big-card.selected{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(224,168,60,.8)}
+
+/* Player seats (desktop rail) */
+.seat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;min-width:216px}
+.seat .who{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.avatar{width:26px;height:26px;border-radius:50%;background:var(--panel3);display:flex;align-items:center;justify-content:center;font-size:.8rem;flex-shrink:0}
+.seat .who b{font-size:.78rem;font-weight:600}
+.seat .who small{font-size:.62rem;color:var(--dim)}
+.badge{font-size:.58rem;padding:1px 6px;border-radius:999px;border:1px solid var(--line);color:var(--dim);margin-left:auto;white-space:nowrap}
+.badge.det{border-color:var(--gold);color:var(--gold)}
+.badge.spent{border-color:var(--danger);color:var(--danger)}
+.badge.you{border-color:var(--good);color:var(--good)}
+.cards-row{display:flex;gap:3px;flex-wrap:wrap}
+.seat.speaking{border-color:var(--gold);box-shadow:0 0 12px rgba(224,168,60,.25)}
+
+.btn{font-family:inherit;border:none;border-radius:9px;padding:10px 18px;font-size:.9rem;font-weight:600;cursor:pointer}
+.btn.gold{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));color:#241505;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);border:1px solid #7a5a22;
+  box-shadow:0 2px 14px rgba(217,169,78,.35), inset 0 1px 0 rgba(255,240,200,.5), inset 0 -2px 4px rgba(90,60,15,.4)}
+.btn.gold:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.big{width:100%;padding:13px;font-size:1rem}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ============ SCREEN: LOBBY ============ */
+.lobby-wrap{flex:1;display:flex;gap:16px;padding:16px;overflow:auto}
+.stage.mobile .lobby-wrap{flex-direction:column}
+.lobby-main{flex:2;display:flex;flex-direction:column;gap:12px}
+.lobby-side{flex:1;display:flex;flex-direction:column;gap:12px;min-width:260px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel h3{font-size:.9rem;color:var(--gold);margin-bottom:10px}
+.room-code{display:flex;align-items:center;gap:10px;background:var(--panel3);border:1px dashed var(--gold-dim);border-radius:10px;padding:10px 14px}
+.room-code b{font-family:'Noto Serif Bengali',serif;font-size:2rem;letter-spacing:6px;color:var(--gold);font-variant-numeric:tabular-nums;text-shadow:0 0 18px rgba(217,169,78,.45),0 2px 2px rgba(0,0,0,.6)}
+.room-code button{margin-left:auto}
+.plist{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pchip{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;font-size:.8rem}
+.pchip.empty{opacity:.35;border-style:dashed;justify-content:center;color:var(--dim)}
+.setting{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.82rem}
+.setting:last-child{border-bottom:none}
+.setting .val{color:var(--gold);font-weight:600}
+.seg{display:flex;background:var(--panel3);border-radius:7px;padding:2px}
+.seg span{font-size:.7rem;padding:3px 9px;border-radius:5px;color:var(--dim);cursor:pointer}
+.seg span.on{background:var(--gold);color:#1a1206;font-weight:600}
+
+/* ============ SCREEN: INITIATION ============ */
+.init{flex:1;background:linear-gradient(rgba(18,10,16,.72),rgba(10,5,9,.88)), url('art/bg-init.webp') center/cover no-repeat, radial-gradient(ellipse at 50% 10%,#2a1729 0%,#0a0509 75%);display:flex;flex-direction:column;align-items:center;padding:18px;position:relative;overflow:auto}
+.ready-list{position:absolute;top:12px;left:12px;background:rgba(20,28,43,.92);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:4px;font-size:.66rem;z-index:5;max-height:46%;overflow-y:auto}
+.ready-list h6{font-size:.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+.rrow{display:flex;align-items:center;gap:6px;min-width:130px}
+.rrow .avatar{width:20px;height:20px;font-size:.65rem}
+.rst{margin-left:auto;font-size:.56rem;padding:1px 7px;border-radius:999px}
+.rst.ok{background:rgba(76,175,125,.15);color:var(--good);border:1px solid var(--good)}
+.rst.no{color:var(--dim);border:1px solid var(--line)}
+.stage.mobile .ready-list{position:static;flex-direction:row;flex-wrap:wrap;max-height:none;width:100%;margin-bottom:8px}
+.stage.mobile .rrow{min-width:0;flex:1 1 44%}
+.flip-card{width:150px;height:210px;perspective:900px;margin:22px 0 10px}
+.flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;animation:twirl 1.8s cubic-bezier(.3,.7,.3,1) forwards}
+@keyframes twirl{0%{transform:rotateY(540deg) scale(.55)}70%{transform:rotateY(0deg) scale(1.07)}100%{transform:rotateY(0deg) scale(1)}}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:10px}
+.face.back{background:repeating-linear-gradient(45deg,#2b1c28,#2b1c28 8px,#3a2636 8px,#3a2636 16px);border:2px solid var(--gold-dim);transform:rotateY(180deg)}
+.face.front{background:linear-gradient(165deg,#422b3e,#241722);border:2px solid var(--gold);box-shadow:0 0 26px rgba(217,169,78,.3)}
+.face.front .r-ic{font-size:2.4rem}
+.face.front .r-nm{font-family:'Noto Serif Bengali';font-weight:800;color:var(--gold);font-size:1.05rem}
+.face.front .r-en{font-size:.66rem;color:var(--dim)}
+.deal-strip{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:560px;margin:8px 0 14px}
+.deal-strip .mini-card{animation:dealIn .5s ease backwards}
+.deal-strip .mini-card:nth-child(2){animation-delay:.12s}.deal-strip .mini-card:nth-child(3){animation-delay:.24s}.deal-strip .mini-card:nth-child(4){animation-delay:.36s}.deal-strip .mini-card:nth-child(5){animation-delay:.48s}.deal-strip .mini-card:nth-child(6){animation-delay:.6s}.deal-strip .mini-card:nth-child(7){animation-delay:.72s}.deal-strip .mini-card:nth-child(8){animation-delay:.84s}
+@keyframes dealIn{from{transform:translateY(-40px) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
+.init .hint{font-size:.72rem;color:var(--dim);margin-bottom:12px;text-align:center}
+
+/* ============ SCREEN: NIGHT (Detective console) ============ */
+.console{flex:1;background:radial-gradient(ellipse at 50% 0%,#131b30 0%,#06080f 70%);display:flex;gap:14px;padding:16px;overflow:auto}
+.stage.mobile .console{flex-direction:column}
+.beats{flex:1.2;min-width:0}
+.beats h3{font-size:.95rem;color:var(--gold);margin-bottom:10px}
+.step{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:9px;font-size:.78rem;margin-bottom:4px}
+.step .n{width:20px;height:20px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;font-size:.62rem;flex-shrink:0;font-weight:700}
+.step small{display:block;color:var(--dim);font-size:.64rem}
+.step.done{opacity:.55}.step.done .n{background:var(--good);color:#04150c}
+.step.now{background:var(--panel3);border:1px solid var(--gold-dim)}.step.now .n{background:var(--gold);color:#1a1206}
+.console .btn.gold{margin-top:12px;width:100%}
+.conn-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-left:6px}
+.night-side{flex:1;display:flex;flex-direction:column;gap:12px;min-width:250px}
+.memo{background:var(--panel);border:1px solid var(--danger);border-radius:12px;padding:12px}
+.memo h5{font-size:.68rem;color:var(--danger);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.memo .who{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.85rem}
+.peek{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px;font-size:.72rem;color:var(--dim)}
+.peek h5{font-size:.68rem;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.peek .fake-screen{background:#05070c;border:1px solid var(--line);border-radius:8px;padding:14px 10px;text-align:center;margin-top:6px}
+.peek .fake-screen .moon2{font-size:1.2rem}
+
+/* ============ SCREEN: NIGHT (legacy shared) ============ */
+.night{flex:1;background:linear-gradient(rgba(18,10,16,.78),rgba(10,5,9,.9)), url('art/bg-night.webp') center/cover no-repeat, radial-gradient(ellipse at 50% 0%,#241426 0%,#0a0509 70%);display:flex;flex-direction:column;align-items:center;padding:24px 16px;overflow:auto}
+.moon{font-size:2.2rem;margin-bottom:6px;filter:drop-shadow(0 0 18px rgba(224,200,120,.5))}
+.night h2{font-size:1.3rem;color:var(--gold);margin-bottom:2px;text-align:center}
+.night .sub{color:var(--dim);font-size:.8rem;margin-bottom:18px;text-align:center}
+.role-card{background:linear-gradient(160deg,#2b1a1a,#1a0e0e);border:1px solid var(--danger);border-radius:14px;padding:14px 22px;text-align:center;margin-bottom:20px}
+.role-card .rname{font-family:'Noto Serif Bengali';font-size:1.4rem;color:var(--danger);font-weight:800}
+.role-card .rdesc{font-size:.72rem;color:var(--dim);max-width:340px;margin-top:4px}
+.pick-zone{width:100%;max-width:560px}
+.pick-zone h5{font-size:.78rem;color:var(--dim);margin:10px 0 8px;text-transform:uppercase;letter-spacing:1px}
+.pick-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.night .btn.gold{margin-top:22px;min-width:240px}
+.night-status{margin-top:14px;font-size:.72rem;color:var(--dim)}
+
+/* ============ SCREEN: INVESTIGATION ============ */
+.invest{flex:1;display:flex;min-height:0}
+.board-col{flex:1;display:flex;flex-direction:column;min-width:0}
+.tiles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 14px}
+.stage.mobile .tiles-grid{grid-template-columns:repeat(2,1fr);gap:8px;padding:10px}
+.player-rail{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;overflow-y:auto;max-height:236px;padding:4px 14px 12px;flex-shrink:0}
+.player-rail .seat{min-width:0}
+/* Easy Investigate */
+.easy-wrap{flex:1;overflow-y:auto;padding:14px}
+.marked-strip{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.mchip{display:flex;align-items:center;gap:6px;background:var(--panel3);border:1px solid var(--gold-dim);border-radius:999px;padding:4px 12px;font-size:.74rem}
+.mchip small{color:var(--dim);font-size:.62rem}
+.mchip b{color:var(--gold)}
+.mchip.pending{border-style:dashed;border-color:var(--line)}
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.stage.mobile .egrid{grid-template-columns:1fr 1fr}
+.ecard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+.ecard .who{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.76rem}
+.ecard .who .avatar{width:22px;height:22px;font-size:.7rem}
+.micro-row{display:flex;flex-wrap:wrap;gap:3px}
+.micro{display:flex;align-items:center;gap:4px;font-size:.62rem;border-radius:5px;padding:2px 6px;color:#141007;line-height:1.2}
+.micro.ev{background:linear-gradient(170deg,#f0d478,#e3bd45)}
+.micro.mn{background:linear-gradient(170deg,#86abe2,#5b8dd9);color:#0a1526}
+.stage.mobile .micro{font-size:.58rem;padding:2px 5px}
+.rail-label{font-size:.68rem;color:var(--dim);padding:0 14px;text-transform:uppercase;letter-spacing:1px}
+.side-col{width:300px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;flex-shrink:0}
+.side-tabs{display:flex;border-bottom:1px solid var(--line)}
+.side-tabs span{flex:1;text-align:center;font-size:.75rem;padding:9px 0;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent}
+.side-tabs span.on{color:var(--gold);border-bottom-color:var(--gold)}
+.log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.log .msg{font-size:.76rem;line-height:1.35}
+.log .msg b{color:var(--gold);font-weight:600}
+.log .msg.sys{color:var(--dim);font-style:italic;font-size:.7rem;border-left:2px solid var(--gold-dim);padding-left:8px}
+.chatbox{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
+.chatbox input{flex:1;background:var(--panel3);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:inherit;font-size:.78rem;padding:8px 10px;outline:none}
+.solve-cta{padding:10px;border-top:1px solid var(--line)}
+.mobile-only{display:none}
+.stage.mobile .desktop-only{display:none}
+.stage.mobile .mobile-only{display:block}
+.stage.mobile .invest{flex-direction:column}
+.stage.mobile .side-col{display:none}
+.bottom-bar{display:none}
+.stage.mobile .bottom-bar{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line);flex-shrink:0;position:sticky;bottom:0}
+.bottom-bar .btn{flex:1;padding:11px 4px;font-size:.8rem}
+.pcarousel{display:flex;gap:6px;overflow-x:auto;padding:8px 10px;flex-shrink:0}
+.pcarousel .pav{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.6rem;color:var(--dim);min-width:52px;cursor:pointer}
+.pcarousel .pav .avatar{width:36px;height:36px;font-size:1rem;border:2px solid transparent}
+.pcarousel .pav.open .avatar{border-color:var(--gold)}
+.pcarousel .pav.spent .avatar{border-color:var(--danger)}
+.sheet{background:var(--panel2);border-top:2px solid var(--gold);border-radius:14px 14px 0 0;padding:12px;flex-shrink:0}
+.sheet .who{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.85rem}
+.sheet .cards-row{gap:5px}
+.sheet .mini-card{width:52px;height:70px;font-size:.55rem}
+
+/* ============ SCREEN: SOLVE ============ */
+.modal-back{flex:1;background:rgba(4,6,10,.82);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.modal{background:var(--panel);border:1px solid var(--gold-dim);border-radius:14px;max-width:620px;width:100%;padding:18px}
+.modal h2{color:var(--gold);font-size:1.1rem;margin-bottom:4px}
+.modal .warn{font-size:.75rem;color:var(--danger);margin-bottom:14px}
+.modal h5{font-size:.75rem;color:var(--dim);margin:12px 0 8px;text-transform:uppercase;letter-spacing:1px}
+.suspect-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.suspect{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:5px 12px 5px 6px;font-size:.78rem;cursor:pointer}
+.suspect.on{border-color:var(--gold);color:var(--gold)}
+.modal .actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.stage.mobile .modal .pick-row{justify-content:flex-start}
+.stage.mobile .modal .big-card{width:84px;height:116px}
+
+/* ============ SCREEN: END ============ */
+.endw{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(rgba(18,10,16,.72),rgba(10,5,9,.88)), url('art/bg-end.webp') center/cover no-repeat, radial-gradient(ellipse at 50% 20%,#2e1b2c 0%,#0a0509 70%);padding:20px;overflow:auto}
+.endw .verdict{font-family:'Noto Serif Bengali';font-size:2rem;font-weight:800;color:var(--good);text-align:center}
+.endw .verdict.bad{color:var(--danger)}
+.endw .sub2{color:var(--dim);margin:6px 0 20px;text-align:center;font-size:.85rem}
+.reveal-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;max-width:680px;width:100%;margin-bottom:22px}
+.reveal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:.78rem}
+.reveal .r{font-size:.68rem;margin-top:2px}
+.reveal .r.mur{color:var(--danger)} .reveal .r.acc{color:#e08a3c} .reveal .r.wit{color:#9b6dd6} .reveal .r.det{color:var(--gold)} .reveal .r.inv{color:var(--good)}
+.witness-hunt{background:var(--panel);border:1px solid var(--danger);border-radius:12px;padding:14px;max-width:560px;width:100%;margin-bottom:18px}
+.witness-hunt h3{color:var(--danger);font-size:.95rem;margin-bottom:6px}
+.witness-hunt p{font-size:.75rem;color:var(--dim);margin-bottom:10px}
+footer.demo-foot{max-width:1280px;margin:14px auto 0;font-size:.72rem;color:var(--dim);text-align:center}
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <h1>গোয়েন্দাগিরি <span>UI/UX Demo — Candlelit Noir · drop images into mockups/art/ to activate the art hooks (see docs/Artwork-Pipeline-Guide.md)</span></h1>
+  <div class="toggle-group" id="devToggle">
+    <button class="on" data-dev="desktop">🖥 Desktop</button>
+    <button data-dev="mobile">📱 Mobile</button>
+  </div>
+</div>
+
+<div class="screen-tabs" id="tabs">
+  <button class="on" data-s="lobby">1 · Lobby</button>
+  <button data-s="init">2 · Initiation / প্রস্তুতি</button>
+  <button data-s="night">3 · Night Sequence / খুন পর্ব</button>
+  <button data-s="invest">4 · Investigation Board</button>
+  <button data-s="easy">5 · Easy Investigate</button>
+  <button data-s="solve">6 · Solve Attempt</button>
+  <button data-s="end">7 · Endgame / Witness Hunt</button>
+</div>
+
+<div class="note" id="noteBox">Room lobby: no accounts — nickname + room code. Host configures difficulty and starts when 6–12 players joined.</div>
+
+<div class="stage desktop" id="stage">
+<div class="device">
+
+  <!-- ================= LOBBY ================= -->
+  <section class="screen on" id="s-lobby">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">লবি · Lobby</span>
+      <span class="timer" style="margin-left:auto">9 / 12 players</span>
+      <span class="lang-pill">বাং | EN</span>
+    </div>
+    <div class="lobby-wrap">
+      <div class="lobby-main">
+        <div class="panel">
+          <h3>রুম কোড · Room code</h3>
+          <div class="room-code"><b>GYD-4821</b><span style="font-size:.7rem;color:var(--dim)">share this link with friends</span><button class="btn ghost" style="padding:6px 12px;font-size:.75rem">📋 Copy link</button></div>
+        </div>
+        <div class="panel" style="flex:1">
+          <h3>খেলোয়াড় · Players (9/12)</h3>
+          <div class="plist">
+            <div class="pchip"><span class="avatar">🦊</span>Tomal <span class="badge you">HOST</span></div>
+            <div class="pchip"><span class="avatar">🐯</span>Rifat</div>
+            <div class="pchip"><span class="avatar">🐸</span>Anika</div>
+            <div class="pchip"><span class="avatar">🦉</span>Shuvo</div>
+            <div class="pchip"><span class="avatar">🐰</span>Mim</div>
+            <div class="pchip"><span class="avatar">🐺</span>Rakib</div>
+            <div class="pchip"><span class="avatar">🦁</span>Priya</div>
+            <div class="pchip"><span class="avatar">🐼</span>Sajid</div>
+            <div class="pchip"><span class="avatar">🐨</span>Nadia</div>
+            <div class="pchip empty">waiting…</div>
+            <div class="pchip empty">waiting…</div>
+            <div class="pchip empty">waiting…</div>
+          </div>
+        </div>
+      </div>
+      <div class="lobby-side">
+        <div class="panel">
+          <h3>সেটিংস · Game settings</h3>
+          <div class="setting"><span>Difficulty</span><span class="seg"><span>সহজ 3</span><span class="on">সাধারণ 4</span><span>কঠিন 5</span></span></div>
+          <div class="setting"><span>Rounds</span><span class="val">3</span></div>
+          <div class="setting"><span>Accomplice + Witness</span><span class="val">Auto (6+ players)</span></div>
+          <div class="setting"><span>Presentation timer</span><span class="seg"><span class="on">30s</span><span>45s</span><span>60s</span><span>∞</span></span></div>
+          <div class="setting"><span>Detective</span><span class="seg"><span class="on">Random</span><span>Volunteer</span></span></div>
+        </div>
+        <div class="panel" style="font-size:.75rem;color:var(--dim)">🎙 Voice: create a Discord call and share it here. In-game text chat is always available.</div>
+        <button class="btn gold big">খেলা শুরু করুন · Start game</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= INITIATION ================= -->
+  <section class="screen" id="s-init">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">প্রস্তুতি · Initiation</span>
+      <span class="timer">6 / 9 ready</span>
+    </div>
+    <div class="init">
+      <div class="ready-list">
+        <h6>প্রস্তুত? · Ready check</h6>
+        <div class="rrow"><span class="avatar">🦊</span>Tomal<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🐯</span>Rifat<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🐸</span>Anika<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🦉</span>Shuvo<span class="rst no">…waiting</span></div>
+        <div class="rrow"><span class="avatar">🐰</span>Mim<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🐺</span>Rakib<span class="rst no">…waiting</span></div>
+        <div class="rrow"><span class="avatar">🦁</span>Priya<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🐼</span>Sajid<span class="rst ok">✓ ready</span></div>
+        <div class="rrow"><span class="avatar">🐨</span>Nadia<span class="rst no">…waiting</span></div>
+      </div>
+      <div class="flip-card"><div class="flip-inner">
+        <div class="face back"><span style="font-size:2rem">🎩</span></div>
+        <div class="face front"><span class="r-ic">🔍</span><span class="r-nm">তদন্তকারী</span><span class="r-en">Investigator — analyze the clues, find the pair</span></div>
+      </div></div>
+      <div class="hint">তোমার চরিত্র কার্ড · Your character card (twirl reveal — replay by re-clicking this tab)</div>
+      <div class="deal-strip">
+        <div class="mini-card ev"><b>পোড়া দিয়াশলাই</b>Matches</div>
+        <div class="mini-card ev"><b>রুমাল</b>Handkerchief</div>
+        <div class="mini-card ev"><b>নথি</b>Documents</div>
+        <div class="mini-card ev"><b>ছবি</b>Photo</div>
+        <div class="mini-card mn"><b>বন্দুক</b>Gun</div>
+        <div class="mini-card mn"><b>ধারালো কাচ</b>Glass shard</div>
+        <div class="mini-card mn"><b>বেল্ট</b>Belt</div>
+        <div class="mini-card mn"><b>শাবল</b>Crowbar</div>
+      </div>
+      <div class="hint">তোমার টেবিলের কার্ড · Your face-up cards, dealt one by one</div>
+      <button class="btn gold" style="min-width:220px">✓ প্রস্তুত · I'm ready</button>
+    </div>
+  </section>
+
+  <!-- ================= NIGHT SEQUENCE (Detective console) ================= -->
+  <section class="screen" id="s-night">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">খুন পর্ব · Night Sequence</span>
+      <span class="timer">Detective's console (your view)</span>
+    </div>
+    <div class="console">
+      <div class="beats">
+        <h3>🌙 রাতের ধারা · Night script — you control the pace</h3>
+        <div class="step done"><span class="n">✓</span><div>ভূমিকা ঘোষণা · Detective announced<small>Everyone saw who the Detective is</small></div></div>
+        <div class="step done"><span class="n">✓</span><div>খুনীকে ডাকা · Killer revealed &amp; picked<small>Solution chosen — highlighted on both screens</small></div></div>
+        <div class="step done"><span class="n">✓</span><div>খুনীকে বিদায় · Killer dismissed<small>"Close your eyes" — back to waiting screen</small></div></div>
+        <div class="step now"><span class="n">4</span><div>সহযোগীকে ডাকা · Call the Accomplice<small>System will show them the killer + solution; you confirm. The killer will NOT learn who they are.</small></div></div>
+        <div class="step"><span class="n">5</span><div>সাক্ষীকে ডাকা · Call the Witness<small>Shows the murderer's identity ONLY</small></div></div>
+        <div class="step"><span class="n">6</span><div>তদন্ত শুরু · Begin investigation<small>"Everyone open your eyes" — board loads for all</small></div></div>
+        <button class="btn gold">📣 সহযোগীকে ডাকুন · Call the Accomplice<span class="conn-dot" title="target online"></span></button>
+      </div>
+      <div class="night-side">
+        <div class="memo">
+          <h5>🗂 কেস মেমো · Case memo (persists all game)</h5>
+          <div class="who"><span class="avatar">🐸</span><b>Anika</b><small style="color:var(--dim)">— the killer</small></div>
+          <div class="cards-row"><div class="mini-card ev"><b>ছেঁড়া চিঠি</b>Torn letter</div><div class="mini-card mn"><b>দড়ি</b>Rope</div></div>
+        </div>
+        <div class="peek">
+          <h5>👁 What everyone else sees right now</h5>
+          Investigators, killer (dismissed), witness — all identical:
+          <div class="fake-screen"><div class="moon2">🌙</div>গোয়েন্দা ঘটনাস্থল বিশ্লেষণ করছেন…<br>Detective is analyzing the scene of murder</div>
+          Called player only: a single <b style="color:var(--gold)">Reveal</b> button appears on their screen.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= INVESTIGATION ================= -->
+  <section class="screen" id="s-invest">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">তদন্ত · Round 2 — Presentation</span>
+      <span class="round-pips"><i class="done"></i><i class="now"></i><i></i></span>
+      <span class="timer warn">⏱ 0:18 — Anika is presenting</span>
+      <span class="lang-pill">বাং | EN</span>
+    </div>
+    <div class="invest">
+      <div class="board-col">
+        <div class="tiles-grid">
+          <div class="tile special"><h4>মৃত্যুর কারণ <em>Cause of death</em></h4>
+            <div class="clues"><span class="clue">শ্বাসরোধ<small>Suffocation</small></span><span class="clue marked">রক্তক্ষরণ<small>Blood loss</small></span><span class="clue">বিষক্রিয়া<small>Poisoning</small></span><span class="clue">দুর্ঘটনা<small>Accident</small></span><span class="clue">রোগ<small>Illness</small></span><span class="clue">অজানা<small>Unknown</small></span></div>
+          </div>
+          <div class="tile special"><h4>অপরাধের স্থান <em>Location</em></h4>
+            <div class="clues"><span class="clue">বাঁশঝাড়<small>Bamboo grove</small></span><span class="clue">লেকের পাড়<small>Lakeside</small></span><span class="clue marked">ডাকাতবাড়ি<small>Hideout</small></span><span class="clue">গ্রামের হাট<small>Market</small></span><span class="clue">মন্দির<small>Temple</small></span><span class="clue">নৌকা<small>Boat</small></span></div>
+          </div>
+          <div class="tile"><h4>ঘটনার সূত্র <em>State of the scene</em></h4>
+            <div class="clues"><span class="clue">এলোমেলো<small>Disarray</small></span><span class="clue">পরিপাটি<small>Tidy</small></span><span class="clue marked">ভাঙা জিনিস<small>Broken items</small></span><span class="clue">পোড়া গন্ধ<small>Burnt smell</small></span><span class="clue">ভেজা মেঝে<small>Wet floor</small></span><span class="clue">অন্ধকার<small>Dark</small></span></div>
+          </div>
+          <div class="tile"><h4>ভুক্তভোগীর অবস্থা <em>Victim</em></h4>
+            <div class="clues"><span class="clue">বৃদ্ধ<small>Old</small></span><span class="clue">যুবক<small>Young</small></span><span class="clue">ধনী<small>Rich</small></span><span class="clue marked">ঋণগ্রস্ত<small>In debt</small></span><span class="clue">একাকী<small>Alone</small></span><span class="clue">সশস্ত্র<small>Armed</small></span></div>
+          </div>
+          <div class="tile"><h4>সময় <em>Time of death</em></h4>
+            <div class="clues"><span class="clue">সন্ধ্যা<small>Dusk</small></span><span class="clue">মধ্যরাত<small>Midnight</small></span><span class="clue marked">ভোর<small>Dawn</small></span><span class="clue">সকাল<small>Morning</small></span><span class="clue">দুপুর<small>Noon</small></span><span class="clue">অজানা<small>Unknown</small></span></div>
+          </div>
+          <div class="tile"><h4>আবহাওয়া <em>Weather (new tile!)</em></h4>
+            <div class="clues"><span class="clue">বৃষ্টি<small>Rain</small></span><span class="clue placing">কুয়াশা<small>Fog</small></span><span class="clue placing">ঝড়<small>Storm</small></span><span class="clue placing">গরম<small>Heat</small></span><span class="clue placing">শীত<small>Cold</small></span><span class="clue placing">পরিষ্কার<small>Clear</small></span></div>
+          </div>
+        </div>
+        <div class="rail-label desktop-only">সন্দেহভাজনদের কার্ড · Suspects' cards — 4-column grid, scrolls ↓ when 9+ players</div>
+        <div class="player-rail desktop-only">
+          <div class="seat"><div class="who"><span class="avatar">🐯</span><b>Rifat</b><span class="badge">🔍 unused</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>কাদা জুতা</b>Muddy shoes</div><div class="mini-card ev"><b>চুলের ক্লিপ</b>Hair clip</div><div class="mini-card ev"><b>সিগারেট</b>Cigarette</div><div class="mini-card ev"><b>মানিব্যাগ</b>Wallet</div><div class="mini-card mn"><b>ছুরি</b>Knife</div><div class="mini-card mn"><b>পিস্তল</b>Pistol</div><div class="mini-card mn"><b>বালিশ</b>Pillow</div><div class="mini-card mn"><b>লাঠি</b>Stick</div></div>
+          </div>
+          <div class="seat speaking"><div class="who"><span class="avatar">🐸</span><b>Anika</b><small>🎤 presenting</small><span class="badge">🔍 unused</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>ছেঁড়া চিঠি</b>Torn letter</div><div class="mini-card ev"><b>আংটি</b>Ring</div><div class="mini-card ev"><b>ওষুধ</b>Medicine</div><div class="mini-card ev"><b>চাবি</b>Key</div><div class="mini-card mn"><b>দড়ি</b>Rope</div><div class="mini-card mn"><b>বিষ</b>Poison</div><div class="mini-card mn"><b>কুড়াল</b>Axe</div><div class="mini-card mn"><b>পাথর</b>Rock</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🦉</span><b>Shuvo</b><span class="badge spent">🔍 used ✗</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>মদের বোতল</b>Bottle</div><div class="mini-card ev"><b>দস্তানা</b>Gloves</div><div class="mini-card ev"><b>টাকার ব্যাগ</b>Money bag</div><div class="mini-card ev"><b>ঘড়ি</b>Watch</div><div class="mini-card mn"><b>ইট</b>Brick</div><div class="mini-card mn"><b>তার</b>Wire</div><div class="mini-card mn"><b>হাতুড়ি</b>Hammer</div><div class="mini-card mn"><b>আগুন</b>Fire</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🐰</span><b>Mim</b><span class="badge you">YOU</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>পোড়া দিয়াশলাই</b>Matches</div><div class="mini-card ev"><b>রুমাল</b>Handkerchief</div><div class="mini-card ev"><b>নথি</b>Documents</div><div class="mini-card ev"><b>ছবি</b>Photo</div><div class="mini-card mn"><b>বন্দুক</b>Gun</div><div class="mini-card mn"><b>ধারালো কাচ</b>Glass shard</div><div class="mini-card mn"><b>বেল্ট</b>Belt</div><div class="mini-card mn"><b>শাবল</b>Crowbar</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🐺</span><b>Rakib</b><span class="badge">🔍 unused</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>জুতার ছাপ</b>Footprint</div><div class="mini-card ev"><b>বোতাম</b>Button</div><div class="mini-card ev"><b>চশমা</b>Glasses</div><div class="mini-card ev"><b>মোবাইল</b>Phone</div><div class="mini-card mn"><b>কাস্তে</b>Sickle</div><div class="mini-card mn"><b>গরম পানি</b>Hot water</div><div class="mini-card mn"><b>চেইন</b>Chain</div><div class="mini-card mn"><b>ছাতা</b>Umbrella</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🦁</span><b>Priya</b><span class="badge">🔍 unused</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>দস্তানা</b>Gloves</div><div class="mini-card ev"><b>ডায়েরি</b>Diary</div><div class="mini-card ev"><b>সুতা</b>Thread</div><div class="mini-card ev"><b>কয়েন</b>Coin</div><div class="mini-card mn"><b>কোদাল</b>Spade</div><div class="mini-card mn"><b>বঁটি</b>Boti</div><div class="mini-card mn"><b>ব্যাট</b>Bat</div><div class="mini-card mn"><b>মাফলার</b>Muffler</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🐼</span><b>Sajid</b><span class="badge">🔍 unused</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>সিঁদুর</b>Vermilion</div><div class="mini-card ev"><b>টিকিট</b>Ticket</div><div class="mini-card ev"><b>কলম</b>Pen</div><div class="mini-card ev"><b>তাবিজ</b>Amulet</div><div class="mini-card mn"><b>লোহার রড</b>Iron rod</div><div class="mini-card mn"><b>গ্যাস</b>Gas</div><div class="mini-card mn"><b>ছুরি ২</b>Dagger</div><div class="mini-card mn"><b>জাল</b>Net</div></div>
+          </div>
+          <div class="seat"><div class="who"><span class="avatar">🐨</span><b>Nadia</b><span class="badge spent">🔍 used ✗</span></div>
+            <div class="cards-row"><div class="mini-card ev"><b>ফিতা</b>Ribbon</div><div class="mini-card ev"><b>খাম</b>Envelope</div><div class="mini-card ev"><b>আয়না</b>Mirror</div><div class="mini-card ev"><b>ব্যাগ</b>Bag</div><div class="mini-card mn"><b>স্কার্ফ</b>Scarf</div><div class="mini-card mn"><b>করাত</b>Saw</div><div class="mini-card mn"><b>পেরেক</b>Nail</div><div class="mini-card mn"><b>মোমবাতি</b>Candle</div></div>
+          </div>
+        </div>
+        <!-- Mobile: avatar carousel + bottom sheet -->
+        <div class="mobile-only">
+          <div class="pcarousel">
+            <div class="pav"><span class="avatar">🐯</span>Rifat</div>
+            <div class="pav open"><span class="avatar">🐸</span>Anika 🎤</div>
+            <div class="pav spent"><span class="avatar">🦉</span>Shuvo</div>
+            <div class="pav"><span class="avatar">🐰</span>Mim ✦</div>
+            <div class="pav"><span class="avatar">🐺</span>Rakib</div>
+            <div class="pav"><span class="avatar">🦁</span>Priya</div>
+            <div class="pav"><span class="avatar">🐼</span>Sajid</div>
+            <div class="pav"><span class="avatar">🐨</span>Nadia</div>
+          </div>
+          <div class="sheet">
+            <div class="who"><span class="avatar">🐸</span><b>Anika</b><small style="color:var(--dim)">🎤 presenting · 🔍 unused</small></div>
+            <div class="cards-row"><div class="mini-card ev"><b>ছেঁড়া চিঠি</b>Torn letter</div><div class="mini-card ev"><b>আংটি</b>Ring</div><div class="mini-card ev"><b>ওষুধ</b>Medicine</div><div class="mini-card ev"><b>চাবি</b>Key</div><div class="mini-card mn"><b>দড়ি</b>Rope</div><div class="mini-card mn"><b>বিষ</b>Poison</div><div class="mini-card mn"><b>কুড়াল</b>Axe</div><div class="mini-card mn"><b>পাথর</b>Rock</div></div>
+          </div>
+        </div>
+        <div class="bottom-bar">
+          <button class="btn danger">🔍 Solve</button>
+          <button class="btn ghost" onclick="goTab('easy')">🧿 Easy</button>
+          <button class="btn ghost">💬 <span style="color:var(--gold)">3</span></button>
+          <button class="btn ghost">🎭</button>
+        </div>
+      </div>
+      <div class="side-col desktop-only">
+        <div class="side-tabs"><span class="on">💬 Chat</span><span>📜 Log</span><span>🎭 My role</span></div>
+        <div class="log">
+          <div class="msg sys">🎩 Detective placed marker: "ডাকাতবাড়ি / Hideout"</div>
+          <div class="msg"><b>Rifat:</b> রক্তক্ষরণ + ভাঙা জিনিস… ধারালো কিছু। Knife or axe?</div>
+          <div class="msg"><b>Priya:</b> Shuvo's hammer fits too 🤔</div>
+          <div class="msg sys">✗ Shuvo guessed Rifat's ছুরি + সিগারেট — WRONG. Investigation card spent.</div>
+          <div class="msg"><b>Sajid:</b> Anika-r দড়ি টা কেউ চেক করছে?</div>
+          <div class="msg sys">🎤 Presentation: Anika (30s). Others muted in chat until turn ends.</div>
+        </div>
+        <div class="chatbox"><input placeholder="লিখুন… / type…"><button class="btn gold" style="padding:8px 12px">➤</button></div>
+        <div class="solve-cta" style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn ghost big" onclick="goTab('easy')">🧿 সহজ তদন্ত · Easy Investigate</button>
+          <button class="btn danger big">🔍 অপরাধের সমাধান · Solve the crime</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= EASY INVESTIGATE ================= -->
+  <section class="screen" id="s-easy">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">🧿 সহজ তদন্ত · Easy Investigate</span>
+      <span class="timer" style="margin-left:auto">read-only overview</span>
+      <button class="btn ghost" style="padding:5px 12px;font-size:.75rem" onclick="goTab('invest')">✕ Back to board</button>
+    </div>
+    <div class="easy-wrap">
+      <div class="rail-label" style="padding:0 0 6px">গোয়েন্দার সূত্র · The Detective's markers</div>
+      <div class="marked-strip" id="easyClues"></div>
+      <div class="rail-label" style="padding:0 0 6px">সব সন্দেহভাজন একসাথে · All suspects at a glance (icon + name only)</div>
+      <div class="egrid" id="easyGrid"></div>
+    </div>
+  </section>
+
+  <!-- ================= SOLVE ================= -->
+  <section class="screen" id="s-solve">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">তদন্ত · Round 2</span>
+      <span class="timer">⏸ paused — solve attempt</span>
+    </div>
+    <div class="modal-back">
+      <div class="modal">
+        <h2>🔍 অপরাধের সমাধান · Solve the crime</h2>
+        <div class="warn">⚠️ এটি তোমার একমাত্র তদন্ত কার্ড খরচ করবে। ভুল হলে আর অনুমান করতে পারবে না। This consumes your only Investigation Card — a wrong guess is permanent.</div>
+        <h5>১ · সন্দেহভাজন বাছাই · Pick a suspect</h5>
+        <div class="suspect-row">
+          <span class="suspect"><span class="avatar">🐰</span>Mim (you)</span>
+          <span class="suspect"><span class="avatar">🐯</span>Rifat</span>
+          <span class="suspect on"><span class="avatar">🐸</span>Anika</span>
+          <span class="suspect"><span class="avatar">🦉</span>Shuvo</span>
+          <span class="suspect"><span class="avatar">🐺</span>Rakib</span>
+          <span class="suspect"><span class="avatar">🦁</span>Priya</span>
+          <span class="suspect"><span class="avatar">🐼</span>Sajid</span>
+          <span class="suspect"><span class="avatar">🐨</span>Nadia</span>
+        </div>
+        <h5>২ · তার ১টি প্রমাণ কার্ড · One of their evidence cards</h5>
+        <div class="pick-row" style="justify-content:flex-start">
+          <div class="big-card ev selected"><b>ছেঁড়া চিঠি</b>Torn letter</div>
+          <div class="big-card ev"><b>আংটি</b>Ring</div>
+          <div class="big-card ev"><b>ওষুধ</b>Medicine</div>
+          <div class="big-card ev"><b>চাবি</b>Key</div>
+        </div>
+        <h5>৩ · তার ১টি খুনের পদ্ধতি · One of their means cards</h5>
+        <div class="pick-row" style="justify-content:flex-start">
+          <div class="big-card mn selected"><b>দড়ি</b>Rope</div>
+          <div class="big-card mn"><b>বিষ</b>Poison</div>
+          <div class="big-card mn"><b>কুড়াল</b>Axe</div>
+          <div class="big-card mn"><b>পাথর</b>Rock</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost">বাতিল · Cancel</button>
+          <button class="btn danger">অভিযোগ করুন · Accuse!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= END ================= -->
+  <section class="screen" id="s-end">
+    <div class="topbar">
+      <span class="logo">🎩 গোয়েন্দাগিরি</span>
+      <span class="phase-chip">খেলা শেষ · Game over</span>
+    </div>
+    <div class="endw">
+      <div class="verdict">✅ তদন্তকারীরা জয়ী! · Investigators win!</div>
+      <div class="sub2">Anika-র "ছেঁড়া চিঠি + দড়ি" সঠিক ছিল… কিন্তু খুনী দল সাক্ষীকে খুঁজে পায়নি। Mim guessed right, and the murderer team failed the witness hunt.</div>
+      <div class="witness-hunt">
+        <h3>🕯 শেষ সুযোগ ছিল · The witness hunt (played out)</h3>
+        <p>খুনী ও সহযোগী ৬০ সেকেন্ডে একজনকে সাক্ষী হিসেবে চিহ্নিত করার চেষ্টা করেছিল — তারা বেছেছিল Priya-কে। ভুল! আসল সাক্ষী ছিল Rakib. The murderer team picked Priya… but the real witness was Rakib.</p>
+        <div class="suspect-row"><span class="suspect"><span class="avatar">🦁</span>Priya ✗ (their pick)</span><span class="suspect on"><span class="avatar">🐺</span>Rakib ✓ (real witness)</span></div>
+      </div>
+      <div class="reveal-list">
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🐸</span><b>Anika</b><div class="r mur">খুনী · Murderer</div></div>
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🐼</span><b>Sajid</b><div class="r acc">সহযোগী · Accomplice</div></div>
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🐺</span><b>Rakib</b><div class="r wit">সাক্ষী · Witness</div></div>
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🦊</span><b>Tomal</b><div class="r det">গোয়েন্দা · Detective</div></div>
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🐰</span><b>Mim ⭐</b><div class="r inv">তদন্তকারী · Solved it!</div></div>
+        <div class="reveal"><span class="avatar" style="margin:0 auto 4px">🐯</span><b>Rifat</b><div class="r inv">তদন্তকারী</div></div>
+      </div>
+      <div style="display:flex;gap:10px"><button class="btn gold">🔁 আবার খেলুন · Play again</button><button class="btn ghost">🚪 Leave room</button></div>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<footer class="demo-foot">Static HTML mockup — but no longer throwaway: stack is web-native (design doc §6, v1.2), so this markup/CSS evolves into the real Svelte components. Toggle Desktop/Mobile above to compare layouts per screen.</footer>
+
+<script>
+const notes = {
+  lobby:"Room lobby: no accounts — nickname + room code. Host configures difficulty and starts with 4–12 players (4–5 = no Accomplice/Witness). Presentation timer supports ∞ mode with a Pass button.",
+  init:"Initiation: server commits all deals instantly, then each client plays the theatre — character card twirls to reveal your role, then your 8 cards deal in. Ready roster (top-left) shows live status; all ready → fade to black.",
+  night:"Detective-orchestrated night: a 6-beat script the Detective advances by button. Called players get a Reveal button; killer picks the solution in a linked view; the case memo (top-right) persists so nobody memorizes. Vamps: killer never learns the accomplice; witness sees the murderer only. Everyone else sees one identical waiting screen — no timing leaks.",
+  invest:"THE critical screen. Desktop: tile board + 4-column suspect GRID (scrolls ↓ at 9+ players) + chat sidebar. Mobile: board first, avatar carousel opens a bottom card-sheet, sticky action bar with Easy Investigate. Hat 🎩 = confirmed marker; dashed = detective selecting (locks only after their Confirm button).",
+  easy:"Easy Investigate: read-only deduction overview. Top: only the marked words per tile. Below: every suspect's cards as icon+name chips (no art) — 8 players × 8 cards on one screen. The 'corkboard view' players stare at during discussion.",
+  solve:"Solve flow is a 3-step modal: suspect → 1 evidence → 1 means. Self-accusation is allowed (v1.3) — note the '(you)' chip. Consumes the Investigation Card permanently — the warning is deliberate friction.",
+  end:"Endgame: if investigators solve it AND a witness is in play, murderer AND accomplice are publicly revealed (v1.3), then get a 60s witness hunt before the verdict. Full role reveal after."
+};
+const stage=document.getElementById('stage');
+function goTab(s){const b=document.querySelector('#tabs button[data-s="'+s+'"]');if(b)b.click();}
+/* ---- Easy Investigate data + renderer ---- */
+const easyClues=[
+ ["মৃত্যুর কারণ","Cause","রক্তক্ষরণ / Blood loss",1],
+ ["অপরাধের স্থান","Location","ডাকাতবাড়ি / Hideout",1],
+ ["ঘটনার সূত্র","Scene","ভাঙা জিনিস / Broken items",1],
+ ["ভুক্তভোগী","Victim","ঋণগ্রস্ত / In debt",1],
+ ["সময়","Time","ভোর / Dawn",1],
+ ["আবহাওয়া","Weather","— placing…",0]
+];
+const easyPlayers=[
+ ["🐯","Rifat","",[["👞","কাদা জুতা"],["🧷","চুলের ক্লিপ"],["🚬","সিগারেট"],["👛","মানিব্যাগ"]],[["🔪","ছুরি"],["🔫","পিস্তল"],["🛏","বালিশ"],["🥢","লাঠি"]]],
+ ["🐸","Anika","🎤",[["💌","ছেঁড়া চিঠি"],["💍","আংটি"],["💊","ওষুধ"],["🗝","চাবি"]],[["🪢","দড়ি"],["🧪","বিষ"],["🪓","কুড়াল"],["🪨","পাথর"]]],
+ ["🦉","Shuvo","✗",[["🍾","মদের বোতল"],["🧤","দস্তানা"],["💰","টাকার ব্যাগ"],["⌚","ঘড়ি"]],[["🧱","ইট"],["🧵","তার"],["🔨","হাতুড়ি"],["🔥","আগুন"]]],
+ ["🐰","Mim (you)","",[["🔥","দিয়াশলাই"],["🧣","রুমাল"],["📄","নথি"],["🖼","ছবি"]],[["🔫","বন্দুক"],["🍸","ধারালো কাচ"],["🥋","বেল্ট"],["⛏","শাবল"]]],
+ ["🐺","Rakib","",[["👣","জুতার ছাপ"],["🔘","বোতাম"],["👓","চশমা"],["📱","মোবাইল"]],[["🌾","কাস্তে"],["♨️","গরম পানি"],["⛓","চেইন"],["☂️","ছাতা"]]],
+ ["🦁","Priya","",[["🧤","দস্তানা"],["📔","ডায়েরি"],["🧶","সুতা"],["🪙","কয়েন"]],[["🛠","কোদাল"],["🔪","বঁটি"],["🏏","ব্যাট"],["🧣","মাফলার"]]],
+ ["🐼","Sajid","",[["🔴","সিঁদুর"],["🎫","টিকিট"],["🖊","কলম"],["🧿","তাবিজ"]],[["🪛","লোহার রড"],["💨","গ্যাস"],["🗡","ছুরি"],["🕸","জাল"]]],
+ ["🐨","Nadia","✗",[["🎀","ফিতা"],["✉️","খাম"],["🪞","আয়না"],["👜","ব্যাগ"]],[["🧣","স্কার্ফ"],["🪚","করাত"],["📌","পেরেক"],["🕯","মোমবাতি"]]]
+];
+document.getElementById('easyClues').innerHTML=easyClues.map(([bn,en,word,ok])=>
+ `<span class="mchip${ok?'':' pending'}"><small>${bn} · ${en}</small> → <b>${word}</b></span>`).join('');
+document.getElementById('easyGrid').innerHTML=easyPlayers.map(([av,name,flag,evs,mns])=>
+ `<div class="ecard"><div class="who"><span class="avatar">${av}</span><b>${name}</b>${flag==='🎤'?'<small style="color:var(--gold)">🎤 presenting</small>':''}${flag==='✗'?'<small style="color:var(--danger)">🔍 spent</small>':''}</div>
+  <div class="micro-row">${evs.map(([i,n])=>`<span class="micro ev">${i} ${n}</span>`).join('')}${mns.map(([i,n])=>`<span class="micro mn">${i} ${n}</span>`).join('')}</div></div>`).join('');
+document.getElementById('devToggle').addEventListener('click',e=>{
+  if(!e.target.dataset.dev)return;
+  document.querySelectorAll('#devToggle button').forEach(b=>b.classList.toggle('on',b===e.target));
+  stage.className='stage '+e.target.dataset.dev;
+});
+document.getElementById('tabs').addEventListener('click',e=>{
+  if(!e.target.dataset.s)return;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b===e.target));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id==='s-'+e.target.dataset.s));
+  document.getElementById('noteBox').textContent=notes[e.target.dataset.s];
+});
+</script>
+</body>
+</html>
