@@ -1,5 +1,6 @@
 <script lang="ts">
   import { view, send } from '../lib/net';
+  import { zoomable } from '../lib/cardZoom';
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
   $: amReady = me.ready;
@@ -19,14 +20,14 @@
     <span class="chip">প্রস্তুতি · Initiation</span>
     <span class="timer">{v.seats.filter(s => s.ready).length} / {v.seats.length} ready</span>
   </div>
-  <div class="scroll" style="display:flex;flex-direction:column;align-items:center;padding:18px;position:relative">
-    <div class="panel" style="position:absolute;top:12px;left:12px;padding:8px;font-size:.66rem;max-height:44%;overflow-y:auto;z-index:5">
-      <div class="dim" style="text-transform:uppercase;letter-spacing:1px;font-size:.6rem;margin-bottom:4px">প্রস্তুত? · Ready</div>
+  <div class="scroll init-scroll">
+    <div class="ready-bar panel">
+      <span class="ready-title">প্রস্তুত? · Ready — {v.seats.filter(s => s.ready).length}/{v.seats.length}</span>
       {#each v.seats as s}
-        <div style="display:flex;align-items:center;gap:6px;min-width:120px;padding:1px 0">
-          <span class="avatar" style="width:18px;height:18px;font-size:.6rem">🕵</span>{s.name}
-          <span style="margin-left:auto;color:{s.ready ? 'var(--good)' : 'var(--dim)'}">{s.ready ? '✓' : '…'}</span>
-        </div>
+        <span class="ready-chip">
+          <span class="avatar">🕵</span>{s.name}
+          <span style="color:{s.ready ? 'var(--good)' : 'var(--dim)'}">{s.ready ? '✓' : '…'}</span>
+        </span>
       {/each}
     </div>
 
@@ -40,10 +41,12 @@
     </div></div>
 
     {#if v.yourRole !== 'detective'}
-      <p class="dim" style="font-size:.72rem;margin:10px 0 6px">তোমার টেবিলের কার্ড · Your face-up cards</p>
-      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:560px">
+      <p class="dim" style="font-size:.8rem;margin:14px 0 8px">তোমার টেবিলের কার্ড · Your face-up cards <span style="font-size:.66rem">— hold to zoom</span></p>
+      <div class="hand">
         {#each [...me.evidence, ...me.means] as c, i}
-          <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" style="animation:dealIn .5s ease {i * 0.12}s backwards">
+          <div class="hand-card {c.type === 'evidence' ? 'ev' : 'mn'}"
+               use:zoomable={c}
+               style="animation:dealIn .5s ease {i * 0.12}s backwards">
             <b>{c.bn}</b>{c.en}
           </div>
         {/each}
@@ -61,7 +64,13 @@
 </div>
 
 <style>
-  .flip-card{width:150px;height:210px;perspective:900px;margin-top:26px}
+  .init-scroll{display:flex;flex-direction:column;align-items:center;padding:16px;gap:4px}
+  .ready-bar{width:100%;max-width:940px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:8px 12px}
+  .ready-title{width:100%;font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:2px}
+  .ready-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;
+    background:var(--panel3);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .ready-chip .avatar{width:18px;height:18px;font-size:.6rem}
+  .flip-card{width:clamp(150px,40vw,190px);aspect-ratio:5/7;perspective:900px;margin-top:14px}
   .flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;animation:twirl 1.8s cubic-bezier(.3,.7,.3,1) forwards}
   @keyframes twirl{0%{transform:rotateY(540deg) scale(.55)}70%{transform:rotateY(0) scale(1.07)}100%{transform:rotateY(0) scale(1)}}
   .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:10px}

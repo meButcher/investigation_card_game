@@ -1,5 +1,6 @@
 <script lang="ts">
   import { view, chat, send } from '../lib/net';
+  import { zoomable } from '../lib/cardZoom';
   import { onDestroy } from 'svelte';
 
   $: v = $view!;
@@ -189,7 +190,7 @@
             </div>
             <div style="display:flex;gap:3px;flex-wrap:wrap">
               {#each [...s.evidence, ...s.means] as c}
-                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}"><b>{c.bn}</b>{c.en}</div>
+                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c}><b>{c.bn}</b>{c.en}</div>
               {/each}
             </div>
           </div>
@@ -254,7 +255,7 @@
       </div>
       <div style="display:flex;gap:5px;flex-wrap:wrap">
         {#each [...openSeat.evidence, ...openSeat.means] as c}
-          <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" style="width:56px;height:76px;font-size:.56rem"><b>{c.bn}</b>{c.en}</div>
+          <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c} style="width:56px;height:76px;font-size:.56rem"><b>{c.bn}</b>{c.en}</div>
         {/each}
       </div>
     </div>

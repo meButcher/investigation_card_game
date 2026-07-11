@@ -7,6 +7,7 @@
   import Night from './screens/Night.svelte';
   import Board from './screens/Board.svelte';
   import End from './screens/End.svelte';
+  import CardZoom from './screens/CardZoom.svelte';
 
   // Auto-reconnect to a previous session — but NEVER when the player arrived via an
   // invite link (?room=...): their intent is to join THAT room, not their old one.
@@ -36,3 +37,6 @@
 {#if $toast}
   <div class="toast">{$toast}</div>
 {/if}
+
+<!-- Global card-zoom overlay: long-press any card anywhere to enlarge it -->
+<CardZoom />

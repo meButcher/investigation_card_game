@@ -1,5 +1,6 @@
 <script lang="ts">
   import { view, send } from '../lib/net';
+  import { zoomable } from '../lib/cardZoom';
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
   $: role = v.yourRole;
@@ -72,7 +73,7 @@
             <p style="font-size:.85rem;margin-bottom:8px"><span class="avatar">🗡</span> <b>{murdererName}</b> <span class="dim">— the killer</span></p>
             <div style="display:flex;gap:5px">
               {#each solutionCards as c}
-                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}"><b>{c.bn}</b>{c.en}</div>
+                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c}><b>{c.bn}</b>{c.en}</div>
               {/each}
             </div>
           </div>
