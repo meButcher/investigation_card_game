@@ -1,29 +1,127 @@
-// ─── Sample content decks. TODO(content pass, design doc §4): replace fillers
-// with authored bilingual cards from the Google Sheet export. ────────────────
+// ─── Card + tile content. 58 evidence + 58 means, each with an icon id that maps
+// to a CC-BY game-icons.net SVG at /icons/<icon>.svg (see apps/client/public/icons).
 import type { Card, Tile } from './types.js';
 
 const EV: [string, string, string][] = [
-  ['কাদা মাখা জুতা', 'Muddy shoes', 'boot-prints'], ['ছেঁড়া চিঠি', 'Torn letter', 'envelope'],
-  ['মদের বোতল', 'Liquor bottle', 'bottle'], ['পোড়া দিয়াশলাই', 'Burnt matches', 'matchbox'],
-  ['চুলের ক্লিপ', 'Hair clip', 'hairclip'], ['সিগারেটের টুকরা', 'Cigarette butt', 'cigarette'],
-  ['মানিব্যাগ', 'Wallet', 'wallet'], ['আংটি', 'Ring', 'ring'], ['ওষুধের শিশি', 'Medicine vial', 'pill'],
-  ['চাবি', 'Key', 'key'], ['দস্তানা', 'Gloves', 'gloves'], ['টাকার ব্যাগ', 'Money bag', 'money-stack'],
-  ['ঘড়ি', 'Watch', 'watch'], ['রুমাল', 'Handkerchief', 'handkerchief'], ['নথিপত্র', 'Documents', 'documents'],
-  ['পুরনো ছবি', 'Old photo', 'photo'], ['জুতার ছাপ', 'Footprint', 'footprint'], ['বোতাম', 'Button', 'button'],
-  ['চশমা', 'Glasses', 'spectacles'], ['মোবাইল ফোন', 'Mobile phone', 'phone'], ['ডায়েরি', 'Diary', 'diary'],
-  ['সুতা', 'Thread', 'thread'], ['কয়েন', 'Coin', 'coin'], ['তাবিজ', 'Amulet', 'amulet'],
-  ['টিকিট', 'Ticket', 'ticket'], ['কলম', 'Pen', 'pen'], ['ফিতা', 'Ribbon', 'ribbon'],
-  ['খাম', 'Envelope', 'letter'], ['আয়না', 'Mirror', 'mirror'], ['হাতব্যাগ', 'Handbag', 'bag'],
+  ['কাদা মাখা জুতা', 'Muddy shoes', 'boot-prints'],
+  ['ছেঁড়া চিঠি', 'Torn letter', 'folded-paper'],
+  ['ব্র্যান্ডির বোতল', 'Brandy bottle', 'brandy-bottle'],
+  ['পোড়া দিয়াশলাই', 'Burnt matches', 'match-head'],
+  ['চুলের ক্লিপ', 'Hair clip', 'hair-strands'],
+  ['সিগারেটের টুকরা', 'Cigarette butt', 'cigarette'],
+  ['মানিব্যাগ', 'Wallet', 'wallet'],
+  ['আংটি', 'Ring', 'diamond-ring'],
+  ['ওষুধের শিশি', 'Medicine vial', 'medicines'],
+  ['চাবি', 'Key', 'key'],
+  ['দস্তানা', 'Gloves', 'gloves'],
+  ['টাকার ব্যাগ', 'Money bag', 'money-stack'],
+  ['পকেট ঘড়ি', 'Pocket watch', 'pocket-watch'],
+  ['রুমাল', 'Cloth', 'rolled-cloth'],
+  ['নথিপত্র', 'Documents', 'paper'],
+  ['পুরনো ছবি', 'Old portrait', 'portrait'],
+  ['জুতার ছাপ', 'Footprint', 'footprint'],
+  ['বোতাম', 'Shirt button', 'shirt-button'],
+  ['চশমা', 'Glasses', 'prank-glasses'],
+  ['মোবাইল ফোন', 'Smartphone', 'smartphone'],
+  ['ডায়েরি', 'Notebook', 'notebook'],
+  ['পশমি সুতা', 'Wool thread', 'wool'],
+  ['দুটি কয়েন', 'Two coins', 'two-coins'],
+  ['তাবিজ', 'Amulet', 'gem-pendant'],
+  ['টিকিট', 'Ticket', 'ticket'],
+  ['ঝর্ণা কলম', 'Fountain pen', 'fountain-pen'],
+  ['ফিতা', 'Ribbon', 'ribbon'],
+  ['খাম', 'Envelope', 'envelope'],
+  ['আয়না', 'Mirror', 'mirror-mirror'],
+  ['হাতব্যাগ', 'Handbag', 'hand-bag'],
+  ['রক্তের দাগ', 'Bloodstain', 'dripping-blade'],
+  ['ছুরিকাহত চিরকুট', 'Stabbed note', 'stabbed-note'],
+  ['ফাটা কাচ', 'Cracked glass', 'cracked-glass'],
+  ['আঙুলের ছাপ', 'Fingerprint', 'finger-print'],
+  ['মুক্তার হার', 'Pearl necklace', 'pearl-necklace'],
+  ['চিরুনি', 'Comb', 'comb'],
+  ['লাইটার', 'Lighter', 'lighter'],
+  ['বাড়ির চাবি', 'House keys', 'house-keys'],
+  ['রত্নহার', 'Gem necklace', 'gem-necklace'],
+  ['খবরের কাগজ', 'Newspaper', 'newspaper'],
+  ['চামড়ার জুতা', 'Leather boot', 'leather-boot'],
+  ['কাগজের ক্লিপ', 'Paper clip', 'paper-clip'],
+  ['কালির দাগ', 'Ink stain', 'ink-swirl'],
+  ['নখ', 'Fingernail', 'fingernail'],
+  ['পালক', 'Feather', 'feather'],
+  ['ব্যাংক নোট', 'Banknote', 'banknote'],
+  ['মোমবাতির টুকরা', 'Candle stub', 'candles'],
+  ['কাচের গ্লাস', 'Glass', 'glass-shot'],
+  ['কাপড়ের ক্লিপ', 'Clothespin', 'clothespin'],
+  ['ম্যাগনিফায়ার', 'Magnifier', 'magnifying-glass'],
+  ['কয়েনের স্তূপ', 'Coin pile', 'coins-pile'],
+  ['পালকের কলম', 'Quill', 'quill'],
+  ['বো-টাই', 'Bow tie', 'bow-tie-ribbon'],
+  ['গলার হার', 'Necklace', 'necklace'],
+  ['জামাকাপড়', 'Clothes', 'clothes'],
+  ['কাগজের ব্যাগ', 'Paper bag', 'paper-bag-open'],
+  ['ক্যামেরা', 'Camera', 'photo-camera'],
+  ['বুকমার্ক', 'Bookmark', 'bookmark'],
 ];
+
 const MN: [string, string, string][] = [
-  ['কুড়াল', 'Axe', 'axe'], ['বিষ', 'Poison', 'poison'], ['দড়ি', 'Rope', 'rope'], ['ইট', 'Brick', 'brick'],
-  ['ছুরি', 'Knife', 'knife'], ['পিস্তল', 'Pistol', 'pistol'], ['বালিশ', 'Pillow', 'pillow'],
-  ['লাঠি', 'Stick', 'stick'], ['তার', 'Wire', 'wire'], ['হাতুড়ি', 'Hammer', 'hammer'],
-  ['আগুন', 'Fire', 'fire'], ['বন্দুক', 'Gun', 'gun'], ['ভাঙা কাচ', 'Glass shard', 'shard'],
-  ['বেল্ট', 'Belt', 'belt'], ['শাবল', 'Crowbar', 'crowbar'], ['কাস্তে', 'Sickle', 'sickle'],
-  ['গরম পানি', 'Hot water', 'kettle'], ['চেইন', 'Chain', 'chain'], ['ছাতা', 'Umbrella', 'umbrella'],
-  ['কোদাল', 'Spade', 'spade'], ['বঁটি', 'Boti blade', 'blade'], ['করাত', 'Saw', 'saw'],
-  ['পেরেক', 'Nail', 'nail'], ['মোমবাতি', 'Candle', 'candle'], ['স্কার্ফ', 'Scarf', 'scarf'],
+  ['কুড়াল', 'Axe', 'battle-axe'],
+  ['বিষ', 'Poison', 'poison-bottle'],
+  ['দড়ি', 'Rope', 'rope-coil'],
+  ['ইট', 'Brick', 'brick-wall'],
+  ['ছুরি', 'Knife', 'bowie-knife'],
+  ['পিস্তল', 'Pistol', 'pistol-gun'],
+  ['বালিশ', 'Pillow', 'pillow'],
+  ['বেসবল ব্যাট', 'Baseball bat', 'baseball-bat'],
+  ['কাঁটাতার', 'Barbed wire', 'barbed-wire'],
+  ['হাতুড়ি', 'Hammer', 'claw-hammer'],
+  ['আগুন', 'Fire', 'flame'],
+  ['রিভলভার', 'Revolver', 'revolver'],
+  ['ভাঙা বোতল', 'Broken bottle', 'broken-bottle'],
+  ['বেল্ট', 'Belt', 'belt'],
+  ['শাবল', 'Crowbar', 'crowbar'],
+  ['কাস্তে', 'Sickle', 'sickle'],
+  ['আগুন বোমা', 'Fire bomb', 'fire-bomb'],
+  ['শিকল', 'Chain', 'crossed-chains'],
+  ['ছাতা', 'Umbrella', 'umbrella'],
+  ['মাংস কাটার ছুরি', 'Cleaver', 'meat-cleaver'],
+  ['ক্ষুরের ফলা', 'Razor blade', 'razor-blade'],
+  ['করাত', 'Saw', 'hand-saw'],
+  ['পেরেক', 'Nails', 'nails'],
+  ['মোমবাতি', 'Candle', 'candle-holder'],
+  ['ছোরা', 'Dagger', 'plain-dagger'],
+  ['বাঁকা ছুরি', 'Curved knife', 'curvy-knife'],
+  ['ছোট কুড়াল', 'Hatchet', 'axe-swing'],
+  ['সিরিঞ্জ', 'Syringe', 'syringe'],
+  ['বিষাক্ত গ্যাস', 'Poison gas', 'poison-gas'],
+  ['গদা', 'Mace', 'flanged-mace'],
+  ['কাস্তে-বড়', 'Scythe', 'scythe'],
+  ['প্রজাপতি ছুরি', 'Butterfly knife', 'butterfly-knife'],
+  ['ছোঁড়া ছুরি', 'Thrown knife', 'thrown-knife'],
+  ['গ্রেনেড', 'Grenade', 'stick-grenade'],
+  ['মলোটভ', 'Molotov', 'fire-bottle'],
+  ['আগুনের কুড়াল', 'Fire axe', 'fire-axe'],
+  ['ভাঙা কুড়াল', 'Broken axe', 'broken-axe'],
+  ['যুদ্ধ হাতুড়ি', 'War hammer', 'thor-hammer'],
+  ['বড় হাতুড়ি', 'Sledge', 'stake-hammer'],
+  ['কাঁটা গদা', 'Spiked mace', 'spiked-mace'],
+  ['হাড়ের ছুরি', 'Bone knife', 'bone-knife'],
+  ['গুপ্ত ছোরা', 'Cloak dagger', 'cloak-dagger'],
+  ['বলির ছোরা', 'Ritual dagger', 'sacrificial-dagger'],
+  ['মৃত্যুর কাস্তে', 'Reaper scythe', 'reaper-scythe'],
+  ['চেইন করাত', 'Chainsaw', 'chainsaw'],
+  ['গোল করাত', 'Circular saw', 'circular-saw'],
+  ['ক্ষুর', 'Razor', 'razor'],
+  ['ফাঁদতার', 'Tripwire', 'tripwire'],
+  ['তারের কুণ্ডলী', 'Wire coil', 'wire-coil'],
+  ['ক্রস কুড়াল', 'Crossed axes', 'crossed-axes'],
+  ['ক্যাম্পফায়ার', 'Campfire', 'campfire'],
+  ['বিষের মেঘ', 'Poison cloud', 'poison-cloud'],
+  ['বিষ সিরিঞ্জ', 'Venom syringe', 'skull-with-syringe'],
+  ['ফলা', 'Blade', 'bat-blade'],
+  ['রক্তাক্ত ছুরি', 'Dripping knife', 'dripping-knife'],
+  ['হাড়ের গদা', 'Bone mace', 'bone-mace'],
+  ['গুঁড়িতে কুড়াল', 'Axe in log', 'axe-in-log'],
+  ['বিষের শিশি', 'Poison vial', 'poison'],
 ];
 
 function fill(list: [string, string, string][], type: 'evidence' | 'means', total: number): Card[] {
@@ -34,22 +132,20 @@ function fill(list: [string, string, string][], type: 'evidence' | 'means', tota
     out.push({
       id: `${type === 'evidence' ? 'ev' : 'mn'}_${String(i + 1).padStart(3, '0')}`, type,
       bn: `${type === 'evidence' ? 'প্রমাণ' : 'পদ্ধতি'} ${i + 1}`, en: `${type === 'evidence' ? 'Evidence' : 'Means'} #${i + 1}`,
-      icon: 'placeholder',
+      icon: 'magnifying-glass',
     });
   }
   return out;
 }
 
-export const EVIDENCE_DECK: Card[] = fill(EV, 'evidence', 60);
-export const MEANS_DECK: Card[] = fill(MN, 'means', 60);
+export const EVIDENCE_DECK: Card[] = fill(EV, 'evidence', 58);
+export const MEANS_DECK: Card[] = fill(MN, 'means', 58);
 
 const W = (pairs: [string, string][]) => pairs.map(([bn, en]) => ({ bn, en }));
-
 export const CAUSE_TILE: Tile = {
   id: 'tile_cause', kind: 'cause', bn: 'মৃত্যুর কারণ', en: 'Cause of death',
   words: W([['শ্বাসরোধ', 'Suffocation'], ['রক্তক্ষরণ', 'Blood loss'], ['বিষক্রিয়া', 'Poisoning'], ['দুর্ঘটনা', 'Accident'], ['রোগ', 'Illness'], ['অজানা', 'Unknown']]),
 };
-
 export const LOCATION_TILES: Tile[] = [
   { id: 'tile_loc_1', kind: 'location', bn: 'অপরাধের স্থান', en: 'Location of crime',
     words: W([['বাঁশঝাড়', 'Bamboo grove'], ['লেকের পাড়', 'Lakeside'], ['ডাকাতবাড়ি', 'Hideout'], ['গ্রামের হাট', 'Market'], ['মন্দির', 'Temple'], ['নৌকা', 'Boat']]) },
@@ -60,7 +156,6 @@ export const LOCATION_TILES: Tile[] = [
   { id: 'tile_loc_4', kind: 'location', bn: 'অপরাধের স্থান', en: 'Location of crime',
     words: W([['জঙ্গল', 'Jungle'], ['মাঠ', 'Field'], ['ঘাট', 'River ghat'], ['মেলা', 'Fair'], ['দোতলা ঘর', 'Upper room'], ['কুয়া', 'Well']]) },
 ];
-
 const SCENE: [string, [string, string][]][] = [
   ['ঘটনার সূত্র · State of the scene', [['এলোমেলো', 'Disarray'], ['পরিপাটি', 'Tidy'], ['ভাঙা জিনিস', 'Broken items'], ['পোড়া গন্ধ', 'Burnt smell'], ['ভেজা মেঝে', 'Wet floor'], ['অন্ধকার', 'Dark']]],
   ['ভুক্তভোগীর অবস্থা · The victim', [['বৃদ্ধ', 'Old'], ['যুবক', 'Young'], ['ধনী', 'Rich'], ['ঋণগ্রস্ত', 'In debt'], ['একাকী', 'Alone'], ['সশস্ত্র', 'Armed']]],
@@ -75,7 +170,6 @@ const SCENE: [string, [string, string][]][] = [
   ['খুনীর সম্পর্ক · Relation', [['আত্মীয়', 'Relative'], ['প্রতিবেশী', 'Neighbour'], ['ব্যবসায়ী', 'Business partner'], ['অপরিচিত', 'Unknown'], ['বন্ধু', 'Friend'], ['শত্রু', 'Enemy']]],
   ['ঘটনার গতি · Speed', [['পরিকল্পিত', 'Planned'], ['হঠাৎ', 'Sudden'], ['ধীরে ধীরে', 'Gradual'], ['দ্বিধাগ্রস্ত', 'Hesitant'], ['নিষ্ঠুর', 'Brutal'], ['দক্ষ', 'Skilled']]],
 ];
-
 export const SCENE_TILES: Tile[] = SCENE.map(([title, words], i) => {
   const [bn, en] = title.split(' · ');
   return { id: `tile_scene_${String(i + 1).padStart(2, '0')}`, kind: 'scene' as const, bn, en, words: W(words) };

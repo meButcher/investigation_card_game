@@ -1,6 +1,6 @@
 <script lang="ts">
   import { view, send } from '../lib/net';
-  import { zoomable } from '../lib/cardZoom';
+  import Card from './Card.svelte';
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
   $: role = v.yourRole;
@@ -71,9 +71,9 @@
           <div class="panel" style="flex:1;min-width:240px;border-color:var(--danger)">
             <h3 style="color:var(--danger)">🗂 কেস মেমো · Case memo</h3>
             <p style="font-size:.85rem;margin-bottom:8px"><span class="avatar">🗡</span> <b>{murdererName}</b> <span class="dim">— the killer</span></p>
-            <div style="display:flex;gap:5px">
+            <div style="display:flex;gap:8px">
               {#each solutionCards as c}
-                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c}><b>{c.bn}</b>{c.en}</div>
+                <Card card={c} size="mini" />
               {/each}
             </div>
           </div>
@@ -94,19 +94,13 @@
       <p class="dim" style="font-size:.72rem;margin-bottom:6px">তোমার প্রমাণ · Your evidence — pick 1</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
         {#each me.evidence as c}
-          <div class="big-card ev" class:selected={pickEv === c.id} role="button" tabindex="0"
-            on:click={() => pickEv = c.id} on:keydown={e => e.key === 'Enter' && (pickEv = c.id)}>
-            <b>{c.bn}</b>{c.en}<small class="dim">প্রমাণ · Evidence</small>
-          </div>
+          <Card card={c} size="big" selected={pickEv === c.id} on:click={() => pickEv = c.id} />
         {/each}
       </div>
       <p class="dim" style="font-size:.72rem;margin:12px 0 6px">খুনের পদ্ধতি · Your means — pick 1</p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
         {#each me.means as c}
-          <div class="big-card mn" class:selected={pickMn === c.id} role="button" tabindex="0"
-            on:click={() => pickMn = c.id} on:keydown={e => e.key === 'Enter' && (pickMn = c.id)}>
-            <b>{c.bn}</b>{c.en}<small>পদ্ধতি · Means</small>
-          </div>
+          <Card card={c} size="big" selected={pickMn === c.id} on:click={() => pickMn = c.id} />
         {/each}
       </div>
       <button class="btn gold" style="margin-top:18px;min-width:220px" disabled={!canConfirm}
@@ -117,7 +111,7 @@
       <p style="margin:8px 0"><b>{murdererName}</b> <span class="dim">is the killer</span></p>
       <div style="display:flex;gap:6px">
         {#each solutionCards as c}
-          <div class="big-card {c.type === 'evidence' ? 'ev' : 'mn'}"><b>{c.bn}</b>{c.en}</div>
+          <Card card={c} size="big" />
         {/each}
       </div>
       <p class="dim" style="font-size:.72rem;margin-top:12px">মনে রেখো — এই মেমো খেলার শেষ পর্যন্ত তোমার HUD-এ থাকবে। This stays on your HUD all game.</p>

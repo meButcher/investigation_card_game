@@ -79,6 +79,15 @@ export class GameRoom extends Room {
       return;
     }
 
+    // Host escape hatch (§6.5): abort ANY phase back to a fresh lobby. Keeps the
+    // same room/code and every still-connected player; disconnected players are
+    // dropped. This unsticks a game deadlocked on a vanished player's turn.
+    if (type === 'resetLobby') {
+      if (client.sessionId !== this.creatorSession) return;
+      this.resetToLobby();
+      return;
+    }
+
     const map: Record<string, (p: any) => Action | null> = {
       ready: () => ({ type: 'READY', seat }),
       callRole: () => ({ type: 'CALL_ROLE', seat, target: p.target }),
@@ -134,6 +143,33 @@ export class GameRoom extends Room {
       if (seat === undefined) continue;
       c.send('view', buildViewFor(seat, this.game));
     }
+  }
+
+  /** Rebuild a fresh lobby from the currently-connected clients, preserving the
+   *  room id (join code) and settings. Seats are re-indexed 0..n-1; the current
+   *  host stays host. Called only by the creator via 'resetLobby'. */
+  private resetToLobby() {
+    if (this.presentationTimer) { this.presentationTimer.clear(); this.presentationTimer = null; }
+    // Only clients still in the room are connected (grace-held leavers are not in this.clients).
+    const kept = this.clients.filter(c => this.seatBySession.get(c.sessionId) !== undefined);
+    // Host first so it takes seat 0 and stays creator; others keep join order.
+    kept.sort((a, b) => (a.sessionId === this.creatorSession ? -1 : b.sessionId === this.creatorSession ? 1 : 0));
+
+    let g = createLobby({ timerSec: this.game.settings.timerSec, difficulty: this.game.settings.difficulty });
+    const nextMap = new Map<string, number>();
+    let creatorSeat = 0;
+    kept.forEach((c, i) => {
+      const oldSeat = this.seatBySession.get(c.sessionId)!;
+      const name = this.game.seats.find(s => s.seat === oldSeat)?.name ?? 'Player';
+      g = addPlayer(g, name);
+      nextMap.set(c.sessionId, i);
+      if (c.sessionId === this.creatorSession) creatorSeat = i;
+    });
+
+    this.seatBySession = nextMap;
+    // Preserve chosen settings but clear any stale seat references.
+    this.game = { ...g, creatorSeat, settings: { ...this.game.settings }, volunteerSeat: null };
+    this.pushViews();
   }
 
   onJoin(client: Client, options: JoinOptions = {}) {

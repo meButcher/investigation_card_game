@@ -1,6 +1,6 @@
 <script lang="ts">
   import { view, chat, send } from '../lib/net';
-  import { zoomable } from '../lib/cardZoom';
+  import Card from './Card.svelte';
   import { onDestroy } from 'svelte';
 
   $: v = $view!;
@@ -174,6 +174,15 @@
         <div style="padding:8px 14px"><button class="btn gold" on:click={() => send('pass')}>✋ শেষ · Pass — end my presentation</button></div>
       {/if}
 
+      {#if me.evidence.length || me.means.length}
+        <p class="dim rail-label">তোমার কার্ড · Your cards <span style="text-transform:none">— hold to zoom</span></p>
+        <div class="my-cards">
+          {#each [...me.evidence, ...me.means] as c}
+            <Card card={c} size="hand" />
+          {/each}
+        </div>
+      {/if}
+
       <p class="dim rail-label">সন্দেহভাজন · Suspects</p>
       <div class="suspect-grid">
         {#each suspects as s}
@@ -188,9 +197,9 @@
                 {s.seat === v.seat ? 'YOU' : s.hasInvestigationCard ? '🔍' : '🔍✗'}
               </span>
             </div>
-            <div style="display:flex;gap:3px;flex-wrap:wrap">
+            <div class="card-row">
               {#each [...s.evidence, ...s.means] as c}
-                <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c}><b>{c.bn}</b>{c.en}</div>
+                <Card card={c} size="mini" />
               {/each}
             </div>
           </div>
@@ -253,9 +262,9 @@
         <span class="avatar">🕵</span><b>{openSeat.name}</b>
         <button class="btn ghost" style="margin-left:auto;padding:2px 10px" on:click={() => openSuspect = null}>✕</button>
       </div>
-      <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
         {#each [...openSeat.evidence, ...openSeat.means] as c}
-          <div class="mini-card {c.type === 'evidence' ? 'ev' : 'mn'}" use:zoomable={c} style="width:56px;height:76px;font-size:.56rem"><b>{c.bn}</b>{c.en}</div>
+          <Card card={c} size="mini" />
         {/each}
       </div>
     </div>
@@ -272,7 +281,7 @@
         </p>
         <div style="display:flex;gap:10px;margin-bottom:14px">
           {#each [pending.evidenceId, pending.meansId].map(cardById) as c}
-            {#if c}<div class="big-card {c.type === 'evidence' ? 'ev' : 'mn'}"><b>{c.bn}</b>{c.en}</div>{/if}
+            {#if c}<Card card={c} size="big" />{/if}
           {/each}
         </div>
         <p class="dim" style="font-size:.75rem;margin-bottom:14px">তুমি কি একমত? Do you agree? তোমার কথাই শেষ কথা — the game will not overrule you.</p>
@@ -371,17 +380,15 @@
         </div>
         {#if sSeat}
           <p class="dim" style="font-size:.72rem;margin-bottom:6px">২ · তার ১টি প্রমাণ · one evidence</p>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
             {#each sSeat.evidence as c}
-              <div class="big-card ev" class:selected={sEv === c.id} style="width:84px;height:112px" role="button" tabindex="0"
-                on:click={() => sEv = c.id} on:keydown={e => e.key === 'Enter' && (sEv = c.id)}><b>{c.bn}</b>{c.en}</div>
+              <Card card={c} size="big" selected={sEv === c.id} on:click={() => sEv = c.id} />
             {/each}
           </div>
           <p class="dim" style="font-size:.72rem;margin-bottom:6px">৩ · তার ১টি পদ্ধতি · one means</p>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             {#each sSeat.means as c}
-              <div class="big-card mn" class:selected={sMn === c.id} style="width:84px;height:112px" role="button" tabindex="0"
-                on:click={() => sMn = c.id} on:keydown={e => e.key === 'Enter' && (sMn = c.id)}><b>{c.bn}</b>{c.en}</div>
+              <Card card={c} size="big" selected={sMn === c.id} on:click={() => sMn = c.id} />
             {/each}
           </div>
         {/if}
@@ -399,6 +406,8 @@
   .board-col{flex:1;min-width:0;position:relative;display:flex;flex-direction:column}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 14px}
   .rail-label{font-size:.68rem;padding:2px 14px;text-transform:uppercase;letter-spacing:1px}
+  .my-cards{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 10px;-webkit-overflow-scrolling:touch}
+  .card-row{display:flex;gap:5px;flex-wrap:wrap}
   .suspect-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 14px 14px;overflow-y:auto;max-height:250px}
   .seat-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;min-width:0;cursor:pointer}
   .seat-card.speaking{border-color:var(--gold);box-shadow:0 0 12px rgba(224,168,60,.25)}
@@ -425,9 +434,11 @@
   .mobile-chat,.mobile-sheet{display:none}
   @media (max-width:1023px){
     .side-col{display:none}
+    .board-col{padding-bottom:74px}
     .tiles{grid-template-columns:repeat(2,1fr);gap:8px;padding:10px}
-    .suspect-grid{grid-template-columns:repeat(2,1fr);max-height:none}
-    .bottom-bar{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line)}
+    .suspect-grid{grid-template-columns:repeat(1,1fr);max-height:none}
+    .seat-card .card-row{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+    .bottom-bar{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line);position:sticky;bottom:0;z-index:41}
     .bottom-bar .btn{flex:1;padding:11px 4px}
     .mobile-chat{display:block;position:fixed;bottom:64px;left:8px;right:8px;z-index:40}
     .mobile-sheet{display:block;position:fixed;bottom:64px;left:8px;right:8px;z-index:39}

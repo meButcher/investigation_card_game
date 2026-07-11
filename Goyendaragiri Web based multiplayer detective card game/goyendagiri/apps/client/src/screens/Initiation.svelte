@@ -1,6 +1,6 @@
 <script lang="ts">
   import { view, send } from '../lib/net';
-  import { zoomable } from '../lib/cardZoom';
+  import Card from './Card.svelte';
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
   $: amReady = me.ready;
@@ -44,10 +44,8 @@
       <p class="dim" style="font-size:.8rem;margin:14px 0 8px">তোমার টেবিলের কার্ড · Your face-up cards <span style="font-size:.66rem">— hold to zoom</span></p>
       <div class="hand">
         {#each [...me.evidence, ...me.means] as c, i}
-          <div class="hand-card {c.type === 'evidence' ? 'ev' : 'mn'}"
-               use:zoomable={c}
-               style="animation:dealIn .5s ease {i * 0.12}s backwards">
-            <b>{c.bn}</b>{c.en}
+          <div class="deal-wrap" style="animation:dealIn .5s ease {i * 0.12}s backwards">
+            <Card card={c} size="hand" />
           </div>
         {/each}
       </div>
