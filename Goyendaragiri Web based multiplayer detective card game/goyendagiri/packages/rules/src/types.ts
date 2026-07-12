@@ -2,7 +2,7 @@
 export type Role = 'detective' | 'murderer' | 'accomplice' | 'witness' | 'investigator';
 
 export type Phase =
-  | 'lobby' | 'initiation'
+  | 'lobby' | 'initiation' | 'study'
   | 'nightIntro' | 'nightKiller' | 'nightAccomplice' | 'nightWitness'
   | 'evidence' | 'presentation' | 'finalVote'
   | 'witnessHunt' | 'gameOver';
@@ -62,6 +62,7 @@ export interface GameState {
 export type Action =
   | { type: 'START'; seat: number }
   | { type: 'READY'; seat: number }
+  | { type: 'BEGIN_NIGHT'; seat: number }
   | { type: 'CALL_ROLE'; seat: number; target: 'murderer' | 'accomplice' | 'witness' }
   | { type: 'REVEAL_ACK'; seat: number }
   | { type: 'PICK_SOLUTION'; seat: number; evidenceId: string; meansId: string }

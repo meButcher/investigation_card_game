@@ -24,7 +24,7 @@ h1,h2,h3,.serif{font-family:'Noto Serif Bengali','Hind Siliguri',serif;letter-sp
 .screen{height:100%;display:flex;flex-direction:column;overflow:hidden}
 .scroll{overflow-y:auto;flex:1}
 
-.topbar{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap;
+.topbar{display:flex;align-items:center;gap:10px;padding:10px var(--ctl-pad,14px) 10px 14px;flex-wrap:wrap;
   background:linear-gradient(180deg,rgba(58,38,54,.9),rgba(36,23,34,.94));
   border-bottom:1px solid var(--gold-dim);box-shadow:0 2px 12px rgba(0,0,0,.4)}
 .logo{font-family:'Noto Serif Bengali';font-weight:800;color:var(--gold);font-size:1.05rem;white-space:nowrap}
@@ -85,36 +85,43 @@ h1,h2,h3,.serif{font-family:'Noto Serif Bengali','Hind Siliguri',serif;letter-sp
   box-shadow:0 26px 80px rgba(0,0,0,.75),0 0 0 2px var(--gold);
   animation:zpop .2s cubic-bezier(.2,.8,.25,1)}
 @keyframes zpop{from{transform:scale(.6);opacity:.3}to{transform:scale(1);opacity:1}}
-.zoom-card b{font-size:clamp(1.3rem,6vw,1.7rem);font-weight:800;
+.zoom-card b{font-size:clamp(1.5rem,7vw,2rem);font-weight:800;text-align:center;
   border-bottom:1px solid rgba(0,0,0,.3);padding-bottom:12px;margin-bottom:12px}
 .zoom-card .zoom-en{font-size:clamp(1rem,4.5vw,1.25rem)}
-.zoom-card .zoom-ic{font-size:clamp(2.6rem,12vw,3.4rem);margin-top:auto;text-align:center}
+.zoom-card .zoom-ic{font-size:clamp(2.6rem,12vw,3.4rem);margin:auto;text-align:center}
 .zoom-card.ev{background:linear-gradient(170deg,#f7d96b,var(--evidence))}
 .zoom-card.mn{background:linear-gradient(170deg,#7ba4e0,var(--means));color:#0a1526}
 .zoom-hint{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);color:var(--dim);font-size:.75rem}
-.zoom-card .card-en{font-size:clamp(1rem,4.5vw,1.25rem);opacity:.85}
-.zoom-card .card-ic{margin-top:auto;width:56%;max-height:52%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.zoom-card .card-en{font-size:clamp(1.15rem,5vw,1.5rem);opacity:.9;text-align:center;font-weight:700;padding-top:12px;border-top:1px solid rgba(0,0,0,.2)}
+.zoom-card .card-ic{margin:auto;width:56%;max-height:52%;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
 
-/* ── unified card: Bangla name (top) · English · icon (bottom) ── */
-.gcard{border-radius:8px;border:1px solid rgba(0,0,0,.4);color:#141007;display:flex;flex-direction:column;
+/* ── unified card: Bangla name (top) · BIG icon (centre) · English name (bottom) ── */
+.gcard{border-radius:9px;border:3px solid rgba(26,15,5,.62);color:#141007;display:flex;flex-direction:column;
   align-items:center;text-align:center;overflow:hidden;flex-shrink:0;position:relative;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);
   user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-.gcard b{display:block;width:100%;font-weight:800;line-height:1.1;border-bottom:1px solid rgba(0,0,0,.22)}
-.gcard .card-en{display:block;width:100%;line-height:1.05;opacity:.82}
-.gcard .card-ic{display:block;margin-top:auto;width:54%;max-height:46%;object-fit:contain;pointer-events:none}
+.gcard b{display:block;width:100%;font-weight:800;line-height:1.15;border-bottom:1.5px solid rgba(0,0,0,.25)}
+.gcard .card-mid{flex:1;display:flex;align-items:center;justify-content:center;width:100%;min-height:0}
+.gcard .card-ic{width:68%;max-height:88%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3))}
+.gcard .card-en{display:block;width:100%;line-height:1.1;font-weight:700;opacity:.9;border-top:1.5px solid rgba(0,0,0,.18)}
 .gcard.ev{background:linear-gradient(170deg,#f7d96b,var(--evidence))}
 .gcard.mn{background:linear-gradient(170deg,#7ba4e0,var(--means));color:#0a1526}
 .gcard.selected{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(224,168,60,.8)}
-.gcard.mini{width:78px;height:106px;padding:5px 4px;font-size:.54rem;cursor:zoom-in}
-.gcard.mini b{font-size:.58rem;padding-bottom:2px;margin-bottom:3px}
-.gcard.hand{width:clamp(80px,21vw,122px);aspect-ratio:3/4;padding:8px 7px;font-size:.72rem;cursor:zoom-in}
-.gcard.hand b{font-size:clamp(.68rem,2.6vw,.9rem);padding-bottom:3px;margin-bottom:4px}
-.gcard.big{width:104px;height:142px;padding:9px 7px;font-size:.68rem;cursor:pointer}
-.gcard.big b{font-size:.74rem;padding-bottom:3px;margin-bottom:4px}
+.gcard.mini{width:78px;height:106px;padding:4px;font-size:1rem;cursor:zoom-in}
+.gcard.mini b{font-size:.64rem;padding-bottom:2px}
+.gcard.mini .card-en{font-size:.52rem;padding-top:2px}
+.gcard.hand{width:clamp(84px,22vw,128px);aspect-ratio:3/4;padding:7px 6px;font-size:1.2rem;cursor:zoom-in}
+.gcard.hand b{font-size:clamp(.76rem,3vw,1rem);padding-bottom:3px}
+.gcard.hand .card-en{font-size:clamp(.62rem,2.3vw,.78rem);padding-top:3px}
+.gcard.big{width:112px;height:152px;padding:8px 7px;font-size:1.3rem;cursor:pointer}
+.gcard.big b{font-size:.84rem;padding-bottom:3px}
+.gcard.big .card-en{font-size:.68rem;padding-top:3px}
 
 /* tiles */
 .tile{background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .tile.special{border-color:var(--gold-dim)}
+.tile.cause{background:linear-gradient(160deg,#332046,#241732);border-color:#7a5aa8}
+.tile.location{background:linear-gradient(160deg,#1b3527,#132719);border-color:#4e8a63}
 .tile h4{font-size:.8rem;color:var(--gold);margin-bottom:6px}
 .tile h4 em{font-style:normal;font-size:.62rem;color:var(--dim);font-weight:400}
 .clues{display:grid;grid-template-columns:1fr 1fr;gap:4px}

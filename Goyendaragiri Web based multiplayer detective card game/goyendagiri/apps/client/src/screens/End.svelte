@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { view, leave } from '../lib/net';
+  import { view, leave, resetLobby } from '../lib/net';
+  import Card from './Card.svelte';
   $: v = $view!;
   $: investigatorsWon = v.winner === 'investigators';
   const roleLabel: Record<string, string> = {
@@ -9,6 +10,11 @@
   const roleColor: Record<string, string> = {
     detective: 'var(--gold)', murderer: 'var(--danger)', accomplice: '#e08a3c', witness: '#9b6dd6', investigator: 'var(--good)',
   };
+  $: killerSeat = v.secret.murdererSeat !== undefined ? v.seats.find(s => s.seat === v.secret.murdererSeat) : null;
+  $: accSeat = v.secret.accompliceSeat !== undefined ? v.seats.find(s => s.seat === v.secret.accompliceSeat) : null;
+  $: solCards = v.secret.solution && killerSeat
+    ? [...killerSeat.evidence, ...killerSeat.means].filter(c => c.id === v.secret.solution!.evidenceId || c.id === v.secret.solution!.meansId)
+    : [];
 </script>
 
 <div class="screen endbg">
@@ -17,6 +23,19 @@
       {investigatorsWon ? '✅ তদন্তকারীরা জয়ী! · Investigators win!' : '🗡 খুনী দল জয়ী! · The murderer wins!'}
     </h1>
     <p class="dim" style="margin:8px 0 22px;text-align:center;font-size:.85rem">{v.winReason}</p>
+
+    {#if killerSeat}
+      <div class="panel" style="border-color:var(--danger);text-align:center;margin-bottom:22px;max-width:480px;width:100%">
+        <h3 style="color:var(--danger)">🗡 খুনী · The killer: {killerSeat.name}</h3>
+        {#if accSeat}<p style="font-size:.8rem;margin:2px 0 8px;color:#e08a3c">🤝 সহযোগী · Accomplice: {accSeat.name}</p>{/if}
+        {#if solCards.length}
+          <p class="dim" style="font-size:.7rem;margin-bottom:8px">অপরাধের সমাধান · the chosen evidence & means</p>
+          <div style="display:flex;gap:10px;justify-content:center">
+            {#each solCards as c}<Card card={c} size="big" />{/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;max-width:680px;width:100%;margin-bottom:22px">
       {#each v.seats as s}
@@ -28,10 +47,11 @@
       {/each}
     </div>
 
-    <div style="display:flex;gap:10px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="btn gold" on:click={resetLobby}>🔁 লবিতে ফিরে যাও · Back to lobby</button>
       <button class="btn ghost" on:click={leave}>🚪 রুম ছাড়ো · Leave room</button>
     </div>
-    <p class="dim" style="font-size:.68rem;margin-top:14px">🔁 Rematch: host creates a fresh room and reshares the link (one-tap rematch is on the roadmap).</p>
+    <p class="dim" style="font-size:.68rem;margin-top:14px">🔁 যে কেউ চাপলে সবাই একসাথে একই লবিতে ফিরবে · any player can bring everyone back to the same lobby for a rematch.</p>
   </div>
 </div>
 

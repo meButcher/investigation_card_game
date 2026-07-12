@@ -67,6 +67,9 @@
   let chatText = '';
   function sendChat() { if (chatText.trim()) { send('chat', { text: chatText }); chatText = ''; } }
 
+  // mobile: board ⇄ all-cards view toggle
+  let cardsView = false;
+
   let openSuspect: number | null = null;
   $: openSeat = openSuspect !== null ? v.seats.find(x => x.seat === openSuspect) : null;
 
@@ -75,6 +78,28 @@
   $: murdererSeatPub = v.seats.find(s => s.revealedRole === 'murderer');
   $: accompliceSeatPub = v.seats.find(s => s.revealedRole === 'accomplice');
   $: huntTargets = v.seats.filter(s => !s.isDetective && s.revealedRole !== 'murderer' && s.revealedRole !== 'accomplice');
+
+  const roleShort: Record<string, string> = {
+    detective: '🎩 গোয়েন্দা', murderer: '🗡 খুনী', accomplice: '🤝 সহযোগী', witness: '🕯 সাক্ষী', investigator: '🔎 তদন্তকারী',
+  };
+  const roleColor: Record<string, string> = {
+    detective: 'var(--gold)', murderer: 'var(--danger)', accomplice: '#e08a3c', witness: '#9b6dd6', investigator: 'var(--good)',
+  };
+  // who knows whose role: detective → everyone; others → self; accomplice/witness → also the killer
+  $: knownRole = (seat: number): string | null => {
+    const pub = v.seats.find(x => x.seat === seat);
+    if (pub?.revealedRole) return pub.revealedRole;
+    if (seat === v.seat) return role;
+    if (v.secret.murdererSeat === seat) return 'murderer';
+    if (v.secret.accompliceSeat === seat) return 'accomplice';
+    if (v.secret.witnessSeat === seat) return 'witness';
+    if (isDet) return 'investigator';
+    return null;
+  };
+
+  let memoOpen = false;
+  $: memoCards = v.secret.solution ? [v.secret.solution.evidenceId, v.secret.solution.meansId].map(cardById).filter(c => !!c) : [];
+  $: hasMemo = v.secret.murdererSeat !== undefined || memoCards.length > 0;
 </script>
 
 <div class="screen">
@@ -144,7 +169,7 @@
       <!-- tile board -->
       <div class="tiles">
         {#each v.tray.tiles as tile, ti}
-          <div class="tile" class:special={tile.kind !== 'scene'} class:replace-target={swapOpen && chosenIdx !== null && ti >= 2}>
+          <div class="tile" class:special={tile.kind !== 'scene'} class:cause={tile.kind === 'cause'} class:location={tile.kind === 'location'} class:replace-target={swapOpen && chosenIdx !== null && ti >= 2}>
             <h4>{tile.bn} <em>{tile.en}</em></h4>
             <div class="clues">
               {#each tile.words as w, wi}
@@ -162,7 +187,7 @@
         {/each}
       </div>
       {#if needSwap}
-        <div style="padding:0 14px"><button class="btn gold" on:click={() => swapOpen = true}>🃏 নতুন টাইল তোলো · Draw new tiles</button></div>
+        <div style="padding:0 14px"><button class="btn gold" on:click={() => swapOpen = true}>{v.swapDraw ? '🃏 টাইল বদল চালিয়ে যাও · Continue the tile swap' : '🃏 নতুন টাইল তোলো · Draw new tiles'}</button></div>
       {/if}
       {#if isDet && pendingMark}
         <div style="padding:8px 14px"><button class="btn gold" on:click={confirmMarker}>🎩 মার্কার নিশ্চিত করো · Confirm marker (final!)</button></div>
@@ -174,17 +199,11 @@
         <div style="padding:8px 14px"><button class="btn gold" on:click={() => send('pass')}>✋ শেষ · Pass — end my presentation</button></div>
       {/if}
 
-      {#if me.evidence.length || me.means.length}
-        <p class="dim rail-label">তোমার কার্ড · Your cards <span style="text-transform:none">— hold to zoom</span></p>
-        <div class="my-cards">
-          {#each [...me.evidence, ...me.means] as c}
-            <Card card={c} size="hand" />
-          {/each}
-        </div>
-      {/if}
-
-      <p class="dim rail-label">সন্দেহভাজন · Suspects</p>
-      <div class="suspect-grid">
+      <div class="rail-row">
+        <p class="dim rail-label">সন্দেহভাজন · Suspects</p>
+        <button class="btn ghost cards-toggle" on:click={() => cardsView = true} aria-label="show all player cards">🃏 সব কার্ড · All cards ▸</button>
+      </div>
+      <div class="suspect-grid" style="--k:{v.settings.difficulty}">
         {#each suspects as s}
           <div class="seat-card" class:speaking={s.seat === currentSeat}
             role="button" tabindex="0" on:click={() => openSuspect = openSuspect === s.seat ? null : s.seat}
@@ -192,7 +211,7 @@
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.78rem">
               <span class="avatar">🕵</span><b>{s.name}</b>
               {#if s.seat === currentSeat}<span style="font-size:.62rem">🎤</span>{/if}
-              {#if s.revealedRole}<span class="badge spent">{s.revealedRole}</span>{/if}
+              {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{roleShort[knownRole(s.seat) ?? '']}</span>{/if}
               <span class="badge" class:spent={!s.hasInvestigationCard} class:you={s.seat === v.seat} style="margin-left:auto">
                 {s.seat === v.seat ? 'YOU' : s.hasInvestigationCard ? '🔍' : '🔍✗'}
               </span>
@@ -206,17 +225,6 @@
         {/each}
       </div>
 
-      {#if v.secret.solution}
-        <div class="hud panel">
-          <span class="dim" style="font-size:.6rem">🗂 CASE MEMO</span>
-          {#each [v.secret.solution.evidenceId, v.secret.solution.meansId].map(cardById) as c}
-            {#if c}<span style="font-size:.68rem;color:{c.type === 'evidence' ? 'var(--evidence)' : 'var(--means)'}">{c.bn}</span>{/if}
-          {/each}
-          {#if v.secret.murdererSeat !== undefined}<span class="dim" style="font-size:.62rem">🗡 {nameOf(v.secret.murdererSeat)}</span>{/if}
-        </div>
-      {:else if role === 'witness' && v.secret.murdererSeat !== undefined}
-        <div class="hud panel"><span class="dim" style="font-size:.6rem">🕯 YOU SAW:</span><span style="font-size:.7rem;color:var(--danger)">{nameOf(v.secret.murdererSeat)}</span></div>
-      {/if}
     </div>
 
     <div class="side-col">
@@ -230,6 +238,9 @@
         <button class="btn gold" on:click={sendChat} disabled={!canChat}>➤</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-top:1px solid var(--line)">
+        {#if hasMemo}
+          <button class="btn ghost" style="border-color:var(--danger);color:var(--danger)" on:click={() => memoOpen = true}>🗂 কেস মেমো · Case memo</button>
+        {/if}
         <button class="btn ghost" on:click={() => showEasy = true}>🧿 সহজ তদন্ত · Easy Investigate</button>
         {#if canSolve}
           <button class="btn danger" on:click={openSolve}>🔍 অপরাধের সমাধান · Solve the crime</button>
@@ -238,7 +249,42 @@
     </div>
   </div>
 
+  <!-- mobile-only: all player cards, vertically scrollable -->
+  {#if cardsView}
+    <div class="cards-view">
+      <div class="cards-view-head">
+        <button class="btn ghost back-btn" on:click={() => cardsView = false} aria-label="back to board">◂</button>
+        <b>🃏 সব কার্ড · All player cards</b>
+        <span class="dim" style="margin-left:auto;font-size:.62rem">hold to zoom</span>
+      </div>
+      <div class="cards-view-body scroll">
+        {#if me.evidence.length || me.means.length}
+          <p class="dim rail-label">তোমার কার্ড · Your cards</p>
+          <div class="cards-wrap">
+            {#each [...me.evidence, ...me.means] as c}
+              <Card card={c} size="hand" />
+            {/each}
+          </div>
+        {/if}
+        {#each suspects.filter(s => s.seat !== v.seat) as s}
+          <p class="dim rail-label cards-owner">
+            🕵 <b>{s.name}</b>
+            {#if s.seat === currentSeat}🎤{/if}
+            {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{roleShort[knownRole(s.seat) ?? '']}</span>{/if}
+            <span class="badge" class:spent={!s.hasInvestigationCard}>{s.hasInvestigationCard ? '🔍' : '🔍✗'}</span>
+          </p>
+          <div class="cards-wrap">
+            {#each [...s.evidence, ...s.means] as c}
+              <Card card={c} size="hand" />
+            {/each}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
   <div class="bottom-bar">
+    {#if hasMemo}<button class="btn ghost" style="border-color:var(--danger);color:var(--danger)" on:click={() => memoOpen = true}>🗂</button>{/if}
     {#if canSolve}<button class="btn danger" on:click={openSolve}>🔍</button>{/if}
     {#if iMustVote}<button class="btn ghost" on:click={() => send('abstain')}>🤐</button>{/if}
     <button class="btn ghost" on:click={() => showEasy = true}>🧿</button>
@@ -260,12 +306,37 @@
     <div class="mobile-sheet panel">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.85rem">
         <span class="avatar">🕵</span><b>{openSeat.name}</b>
+        {#if knownRole(openSeat.seat)}<span class="badge" style="border-color:{roleColor[knownRole(openSeat.seat) ?? '']};color:{roleColor[knownRole(openSeat.seat) ?? '']}">{roleShort[knownRole(openSeat.seat) ?? '']}</span>{/if}
         <button class="btn ghost" style="margin-left:auto;padding:2px 10px" on:click={() => openSuspect = null}>✕</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
         {#each [...openSeat.evidence, ...openSeat.means] as c}
           <Card card={c} size="mini" />
         {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Case memo modal -->
+  {#if memoOpen}
+    <div class="modal-back" role="button" tabindex="0" on:click={() => memoOpen = false} on:keydown={e => e.key === 'Escape' && (memoOpen = false)}>
+      <div class="modal" role="dialog" tabindex="-1" style="max-width:420px;border-color:var(--danger)" on:click|stopPropagation on:keydown|stopPropagation>
+        <h2 style="color:var(--danger)">🗂 কেস মেমো · Case memo <button class="btn ghost" style="float:right;padding:2px 10px" on:click={() => memoOpen = false}>✕</button></h2>
+        {#if v.secret.murdererSeat !== undefined}
+          <p style="margin:12px 0 4px;font-size:.9rem">🗡 খুনী · The killer: <b style="color:var(--danger)">{nameOf(v.secret.murdererSeat)}{v.secret.murdererSeat === v.seat ? ' (you)' : ''}</b></p>
+        {/if}
+        {#if memoCards.length}
+          <p class="dim" style="font-size:.7rem;margin:8px 0 6px">তার বেছে নেওয়া কার্ড · the chosen evidence & means</p>
+          <div style="display:flex;gap:10px">
+            {#each memoCards as c}{#if c}<Card card={c} size="big" />{/if}{/each}
+          </div>
+        {/if}
+        {#if v.secret.accompliceSeat !== undefined}
+          <p style="margin:12px 0 0;font-size:.85rem">🤝 সহযোগী · Accomplice: <b style="color:#e08a3c">{nameOf(v.secret.accompliceSeat)}{v.secret.accompliceSeat === v.seat ? ' (you)' : ''}</b></p>
+        {/if}
+        {#if v.secret.witnessSeat !== undefined}
+          <p style="margin:8px 0 0;font-size:.85rem">🕯 সাক্ষী · Witness: <b style="color:#9b6dd6">{nameOf(v.secret.witnessSeat)}{v.secret.witnessSeat === v.seat ? ' (you)' : ''}</b></p>
+        {/if}
       </div>
     </div>
   {/if}
@@ -332,6 +403,7 @@
             </button>
           {/if}
         {/if}
+        <button class="btn ghost" style="margin-top:16px" on:click={() => swapOpen = false}>🧿 টেবিল দেখে নাও · Inspect the table first — your draw is saved</button>
       </div>
     </div>
   {/if}
@@ -406,16 +478,14 @@
   .board-col{flex:1;min-width:0;position:relative;display:flex;flex-direction:column}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:12px 14px}
   .rail-label{font-size:.68rem;padding:2px 14px;text-transform:uppercase;letter-spacing:1px}
-  .my-cards{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 10px;-webkit-overflow-scrolling:touch}
-  .card-row{display:flex;gap:5px;flex-wrap:wrap}
-  .suspect-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:4px 14px 14px;overflow-y:auto;max-height:250px}
+  .card-row{display:grid;grid-template-columns:repeat(var(--k,4),max-content);gap:5px}
+  .suspect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--k,4) * 84px + 26px),1fr));gap:8px;padding:4px 14px 14px}
   .seat-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px;min-width:0;cursor:pointer}
   .seat-card.speaking{border-color:var(--gold);box-shadow:0 0 12px rgba(224,168,60,.25)}
   .side-col{width:300px;border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;flex-shrink:0}
   .chatlog{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
   .chatlog .sys{font-size:.68rem;color:var(--dim);font-style:italic;border-left:2px solid var(--gold-dim);padding-left:8px}
   .chatlog .msg{font-size:.76rem;line-height:1.35}
-  .hud{position:absolute;top:8px;right:8px;display:flex;gap:6px;align-items:center;padding:6px 10px;border-color:var(--danger);z-index:10}
   /* deck + draw animation */
   .deck{position:relative;width:150px;height:200px;margin:8px auto 18px;background:none;border:none;cursor:pointer;display:block}
   .deck-card{position:absolute;inset:0;border-radius:12px;border:2px solid var(--gold-dim);
@@ -432,16 +502,34 @@
   .tile.replace-target{outline:1px dashed var(--gold-dim)}
   .bottom-bar{display:none}
   .mobile-chat,.mobile-sheet{display:none}
+  /* mobile all-cards view (hidden on desktop) */
+  .rail-row{display:flex;align-items:center;gap:8px}
+  .rail-row .rail-label{padding-right:0}
+  .cards-toggle{display:none}
+  .cards-view{display:none}
   @media (max-width:1023px){
     .side-col{display:none}
     .board-col{padding-bottom:74px}
     .tiles{grid-template-columns:repeat(2,1fr);gap:8px;padding:10px}
-    .suspect-grid{grid-template-columns:repeat(1,1fr);max-height:none}
-    .seat-card .card-row{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+    .suspect-grid{grid-template-columns:repeat(1,1fr)}
     .bottom-bar{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line);position:sticky;bottom:0;z-index:41}
     .bottom-bar .btn{flex:1;padding:11px 4px}
     .mobile-chat{display:block;position:fixed;bottom:64px;left:8px;right:8px;z-index:40}
     .mobile-sheet{display:block;position:fixed;bottom:64px;left:8px;right:8px;z-index:39}
-    .hud{position:static;margin:8px 14px}
+    /* board view: suspect rows become compact name strips — cards live in the cards view */
+    .seat-card .card-row{display:none}
+    .seat-card > div:first-child{margin-bottom:0 !important}
+    .cards-toggle{display:inline-flex;align-items:center;margin-left:auto;margin-right:14px;
+      padding:3px 10px;font-size:.68rem;color:var(--gold);border-color:var(--gold-dim)}
+    .cards-view{display:flex;flex-direction:column;position:fixed;top:0;left:0;right:0;bottom:64px;
+      z-index:38;background:var(--bg)}
+    .cards-view-head{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0;
+      background:linear-gradient(180deg,rgba(58,38,54,.9),rgba(36,23,34,.94));border-bottom:1px solid var(--gold-dim)}
+    .cards-view-head b{color:var(--gold);font-size:.88rem}
+    .back-btn{padding:4px 14px;font-size:1rem;color:var(--gold);border-color:var(--gold-dim)}
+    .cards-view-body{padding:10px 0 16px}
+    .cards-owner{margin-top:12px;display:flex;align-items:center;gap:6px;text-transform:none}
+    .cards-owner b{color:var(--ink)}
+    .cards-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:4px 14px}
   }
 </style>

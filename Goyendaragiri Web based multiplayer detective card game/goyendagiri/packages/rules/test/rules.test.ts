@@ -20,6 +20,8 @@ const must = (r: { next: GameState; error?: string }) => { expect(r.error).toBeU
 function throughNight(n: number, seed = 42, opts: Parameters<typeof createLobby>[0] = {}): GameState {
   let s = started(n, seed, opts);
   for (const seat of s.seats.map(x => x.seat)) s = must(apply(s, { type: 'READY', seat }));
+  expect(s.phase).toBe('study');
+  s = must(apply(s, { type: 'BEGIN_NIGHT', seat: seatOf(s, 'detective') }));
   expect(s.phase).toBe('nightIntro');
   const det = seatOf(s, 'detective'); const mur = seatOf(s, 'murderer');
   s = must(apply(s, { type: 'CALL_ROLE', seat: det, target: 'murderer' }));
@@ -105,6 +107,8 @@ describe('night sequence', () => {
   it('REVEAL_ACK clears the call so the linked view is reachable (v0.1.1 regression)', () => {
     let s = started(6);
     for (const seat of s.seats.map(x => x.seat)) s = must(apply(s, { type: 'READY', seat }));
+    expect(s.phase).toBe('study');
+    s = must(apply(s, { type: 'BEGIN_NIGHT', seat: seatOf(s, 'detective') }));
     const det = seatOf(s, 'detective'); const mur = seatOf(s, 'murderer');
     s = must(apply(s, { type: 'CALL_ROLE', seat: det, target: 'murderer' }));
     s = must(apply(s, { type: 'REVEAL_ACK', seat: mur }));
@@ -198,6 +202,15 @@ describe('evidence, swap & presentation', () => {
     s = must(apply(s, { type: 'SWAP_DRAW', seat: det }));
     expect(apply(s, { type: 'SWAP_CHOOSE', seat: det, chosenIdx: 0, discardTileIdx: 0 }).error).toMatch(/scene/);
   });
+  it('presentation order includes disconnected seats — a round ends only after every seat passes', () => {
+    let s = throughNight(6);
+    const inv = s.seats.find(x => x.role === 'investigator')!;
+    s = must(apply(s, { type: 'SET_CONNECTED', seat: inv.seat, connected: false }));
+    s = placeAllMarkers(s);
+    expect(s.phase).toBe('presentation');
+    expect(s.presentation!.order.length).toBe(5);
+    expect(s.presentation!.order).toContain(inv.seat);
+  });
 });
 
 describe('final decision round (v1.6)', () => {
@@ -258,8 +271,20 @@ describe('detective-orchestrated verdicts (v1.6)', () => {
     expect(s.winner).toBeNull();
     expect(s.seats.find(x => x.seat === accuser)!.hasInvestigationCard).toBe(false);
   });
-  it('detective says YES → investigators win even if cards mismatch the night pick (his word is law)', () => {
-    let s = toPending(4);
+  it('detective approving a FALSE accusation → murderer wins', () => {
+    let s = placeAllMarkers(throughNight(4, 42, { verdictMode: 'detective' }));
+    const inv = s.seats.find(x => x.role === 'investigator')!;
+    // accuse a non-murderer: his cards can never match the solution → guaranteed false
+    const suspect = s.seats.find(x => x.role !== 'detective' && x.role !== 'murderer' && x.seat !== inv.seat)!;
+    s = must(apply(s, { type: 'ACCUSE', seat: inv.seat, suspectSeat: suspect.seat, evidenceId: suspect.evidence[0].id, meansId: suspect.means[0].id }));
+    s = must(apply(s, { type: 'VERDICT', seat: seatOf(s, 'detective'), agree: true }));
+    expect(s.winner).toBe('murderer');
+    expect(s.winReason).toMatch(/false accusation/);
+  });
+  it('detective approving a TRUE accusation → investigators win', () => {
+    let s = placeAllMarkers(throughNight(4, 42, { verdictMode: 'detective' }));
+    const inv = s.seats.find(x => x.role === 'investigator')!;
+    s = must(apply(s, { type: 'ACCUSE', seat: inv.seat, suspectSeat: seatOf(s, 'murderer'), evidenceId: s.solution!.evidenceId, meansId: s.solution!.meansId }));
     s = must(apply(s, { type: 'VERDICT', seat: seatOf(s, 'detective'), agree: true }));
     expect(s.winner).toBe('investigators');
   });

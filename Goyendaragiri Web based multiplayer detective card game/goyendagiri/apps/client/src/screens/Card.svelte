@@ -10,6 +10,8 @@
 <div class="gcard {size} {card.type === 'evidence' ? 'ev' : 'mn'}" class:selected
      use:zoomable={card} on:click on:keydown>
   <b>{card.bn}</b>
+  <span class="card-mid">
+    {#if card.icon}<img class="card-ic" src="/icons/{card.icon}.svg" alt="" draggable="false" loading="lazy" />{:else}{card.type === 'evidence' ? '🔍' : '🗡'}{/if}
+  </span>
   <span class="card-en">{card.en}</span>
-  {#if card.icon}<img class="card-ic" src="/icons/{card.icon}.svg" alt="" draggable="false" loading="lazy" />{/if}
 </div>

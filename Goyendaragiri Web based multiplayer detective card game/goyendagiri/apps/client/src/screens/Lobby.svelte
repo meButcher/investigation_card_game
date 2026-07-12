@@ -103,7 +103,7 @@
           </span>
         </div>
         
-        <div class="setting" style="border-bottom:none">
+        <div class="setting">
           <span class="setting-label">🎩 DETECTIVE</span>
           <span class="seg">
             <button class:on={v.settings.detectiveMode === 'random'} disabled={!isCreator}
@@ -112,7 +112,17 @@
               on:click={() => send('updateSettings', { detectiveMode: 'volunteer' })}>VOLUNTEER</button>
           </span>
         </div>
-        
+
+        <div class="setting" style="border-bottom:none">
+          <span class="setting-label">⚖️ VERDICT</span>
+          <span class="seg">
+            <button class:on={v.settings.verdictMode === 'auto'} disabled={!isCreator}
+              on:click={() => send('updateSettings', { verdictMode: 'auto' })}>AUTO</button>
+            <button class:on={v.settings.verdictMode === 'detective'} disabled={!isCreator}
+              on:click={() => send('updateSettings', { verdictMode: 'detective' })}>DETECTIVE</button>
+          </span>
+        </div>
+
         {#if volunteerMode && v.volunteerSeat === null}
           <p class="warn-text">No volunteer chosen yet — {isCreator ? 'tap a player on the left' : 'the host will pick one'}. Falls back to random if unset.</p>
         {/if}

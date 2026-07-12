@@ -100,7 +100,7 @@ function deal(s: GameState, rand: () => number): GameState {
 
 function startPresentation(s: GameState): GameState {
   const det = detective(s);
-  const order = s.seats.filter(x => x.role !== 'detective' && x.connected)
+  const order = s.seats.filter(x => x.role !== 'detective')
     .map(x => x.seat)
     .sort((a, b) => ((a - det.seat + s.seats.length) % s.seats.length) - ((b - det.seat + s.seats.length) % s.seats.length));
   return log({ ...s, phase: 'presentation', presentation: { order, idx: 0 } }, `📣 Round ${s.round} presentations begin`);
@@ -180,9 +180,15 @@ export function apply(s: GameState, a: Action): ApplyResult {
       const seats = s.seats.map(x => x.seat === a.seat ? { ...x, ready: true } : x);
       let next: GameState = { ...s, seats };
       if (seats.every(x => x.ready || !x.connected)) {
-        next = log({ ...next, phase: 'nightIntro' }, '🌙 Night falls. The detective takes over.');
+        next = log({ ...next, phase: 'study' }, '🃏 পর্যবেক্ষণ · Study the table — ৫ মিনিট · 5 minutes');
       }
       return { next };
+    }
+
+    case 'BEGIN_NIGHT': {
+      if (s.phase !== 'study') return err(s, 'not study time');
+      if (actor.role !== 'detective') return err(s, 'detective only');
+      return { next: log({ ...s, phase: 'nightIntro' }, '🌙 Night falls. The detective takes over.') };
     }
 
     case 'CALL_ROLE': {
@@ -314,8 +320,19 @@ export function apply(s: GameState, a: Action): ApplyResult {
       if (actor.role !== 'detective') return err(s, 'detective only');
       const p = s.pendingAccusation;
       if (!p) return err(s, 'no accusation pending');
-      // The Detective's word IS the verdict in orchestrated mode — no truth check.
-      return { next: resolveAccusation(s, p.bySeat, p.suspectSeat, p.evidenceId, p.meansId, a.agree) };
+      if (a.agree) {
+        // v1.7: the Detective's YES is checked against the truth — endorsing a
+        // false accusation hands the killer the win.
+        const actuallyCorrect = !!s.solution && s.solution.evidenceId === p.evidenceId && s.solution.meansId === p.meansId;
+        if (!actuallyCorrect) {
+          let next = resolveAccusation(s, p.bySeat, p.suspectSeat, p.evidenceId, p.meansId, false);
+          if (!next.winner) next = endGame(next, 'murderer', 'গোয়েন্দা ভুল রায় দিলেন · the Detective endorsed a false accusation — the killer walks free');
+          return { next };
+        }
+        return { next: resolveAccusation(s, p.bySeat, p.suspectSeat, p.evidenceId, p.meansId, true) };
+      }
+      // a NO from the Detective stands, true or not — the accuser's card is spent.
+      return { next: resolveAccusation(s, p.bySeat, p.suspectSeat, p.evidenceId, p.meansId, false) };
     }
 
     case 'ABSTAIN': {
@@ -389,7 +406,11 @@ export function buildViewFor(seat: number, s: GameState): ClientView {
   if (me.role === 'accomplice' && acc) secret.accompliceSeat = acc.seat; // self
   if (me.role === 'detective' && wit) secret.witnessSeat = wit.seat;
   if (me.role === 'witness' && wit) secret.witnessSeat = wit.seat;       // self
-  if (revealCulprits && mur && acc) { secret.murdererSeat = mur.seat; secret.accompliceSeat = acc.seat; } // v1.3 public reveal
+  if (revealCulprits) {
+    if (mur) secret.murdererSeat = mur.seat;
+    if (acc) secret.accompliceSeat = acc.seat;
+    if (s.solution) secret.solution = s.solution;
+  } // v1.3 public reveal
 
   const p = s.presentation;
   const view: ClientView = {

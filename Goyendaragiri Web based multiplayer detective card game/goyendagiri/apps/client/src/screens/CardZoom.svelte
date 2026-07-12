@@ -11,12 +11,12 @@
     <div class="zoom-card {$zoomedCard.type === 'evidence' ? 'ev' : 'mn'}"
          on:click|stopPropagation role="presentation">
       <b>{$zoomedCard.bn}</b>
-      <span class="card-en">{$zoomedCard.en}</span>
       {#if $zoomedCard.icon}
         <img class="card-ic" src="/icons/{$zoomedCard.icon}.svg" alt="" draggable="false" />
       {:else}
         <span class="zoom-ic">{$zoomedCard.type === 'evidence' ? '🔍' : '🗡'}</span>
       {/if}
+      <span class="card-en">{$zoomedCard.en}</span>
     </div>
     <div class="zoom-hint">ট্যাপ করুন · tap anywhere to close</div>
   </div>

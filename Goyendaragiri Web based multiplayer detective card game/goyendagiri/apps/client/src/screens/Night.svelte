@@ -11,6 +11,10 @@
   let pickEv: string | null = null;
   let pickMn: string | null = null;
   $: canConfirm = pickEv && pickMn;
+  $: sol = v.secret.solution;
+  // restore picks after a re-mount so the confirmed choice stays visible & changeable
+  $: if (role === 'murderer' && sol && !pickEv && !pickMn) { pickEv = sol.evidenceId; pickMn = sol.meansId; }
+  $: confirmedCurrent = !!sol && sol.evidenceId === pickEv && sol.meansId === pickMn;
 
   // detective console beats
   $: beats = [
@@ -36,6 +40,7 @@
     <span class="chip">খুন পর্ব · Night</span>
   </div>
   <div class="scroll" style="display:flex;flex-direction:column;align-items:center;padding:22px 16px">
+    <div class="night-center">
 
     {#if role === 'detective'}
       <!-- Detective console -->
@@ -103,8 +108,13 @@
           <Card card={c} size="big" selected={pickMn === c.id} on:click={() => pickMn = c.id} />
         {/each}
       </div>
-      <button class="btn gold" style="margin-top:18px;min-width:220px" disabled={!canConfirm}
-        on:click={() => send('pickSolution', { evidenceId: pickEv, meansId: pickMn })}>নিশ্চিত করো · Confirm</button>
+      <button class="btn gold" style="margin-top:18px;min-width:220px" disabled={!canConfirm || confirmedCurrent}
+        on:click={() => send('pickSolution', { evidenceId: pickEv, meansId: pickMn })}>
+        {confirmedCurrent ? '✓ নিশ্চিত হয়েছে · Confirmed' : sol ? '🔄 বদলে দাও · Update choice' : 'নিশ্চিত করো · Confirm'}
+      </button>
+      {#if sol}
+        <p class="dim" style="font-size:.7rem;margin-top:8px">গোয়েন্দা বিদায় না দেওয়া পর্যন্ত কার্ড বদলাতে পারবে · tap other cards to change until the Detective dismisses you</p>
+      {/if}
 
     {:else if v.phase === 'nightAccomplice' && role === 'accomplice' && v.secret.solution}
       <h2 class="goldtext">🗂 কেস মেমো · Your case memo</h2>
@@ -127,10 +137,12 @@
       <h2 class="goldtext" style="text-align:center">গোয়েন্দা ঘটনাস্থল বিশ্লেষণ করছেন…</h2>
       <p class="dim" style="font-size:.8rem">Detective is analyzing the scene of murder</p>
     {/if}
+    </div>
   </div>
 </div>
 
 <style>
   .night-bg{background:linear-gradient(rgba(18,10,16,.78),rgba(10,5,9,.9)),url('/art/bg-night.webp') center/cover no-repeat,radial-gradient(ellipse at 50% 0%,#241426 0%,#0a0509 70%)}
   .moon{font-size:2.4rem;margin-bottom:8px;filter:drop-shadow(0 0 18px rgba(224,200,120,.5))}
+  .night-center{margin:auto;display:flex;flex-direction:column;align-items:center;width:100%}
 </style>

@@ -5,12 +5,14 @@
   import Landing from './screens/Landing.svelte';
   import Lobby from './screens/Lobby.svelte';
   import Initiation from './screens/Initiation.svelte';
+  import Study from './screens/Study.svelte';
   import Night from './screens/Night.svelte';
   import Board from './screens/Board.svelte';
   import End from './screens/End.svelte';
   import CardZoom from './screens/CardZoom.svelte';
 
   let showReset = false;
+  let ctlW = 0;
 
   onMount(() => {
     if (!new URLSearchParams(location.search).get('room')) tryReconnect();
@@ -29,6 +31,7 @@
   $: isNight = phase !== null && phase.startsWith('night');
   $: isDay = phase === 'evidence' || phase === 'presentation' || phase === 'finalVote' || phase === 'witnessHunt';
   $: isHost = !!$view && $view.seat === $view.creatorSeat;
+  $: if (typeof document !== 'undefined') document.documentElement.style.setProperty('--ctl-pad', ctlW ? `${ctlW + 22}px` : '14px');
 
   // Phase-change sound cues.
   let prevPhase: string | null = null;
@@ -53,6 +56,8 @@
   <Lobby />
 {:else if phase === 'initiation'}
   <Initiation />
+{:else if phase === 'study'}
+  <Study />
 {:else if isNight}
   <Night />
 {:else if isDay}
@@ -62,7 +67,7 @@
 {/if}
 
 <!-- Fixed host + sound controls, available on every screen -->
-<div class="corner-ctl">
+<div class="corner-ctl" bind:clientWidth={ctlW}>
   <button class="ctl-btn" title={$muted ? 'Unmute' : 'Mute'} aria-label="Toggle sound"
     on:click={() => { unlockAudio(); toggleMute(); }}>{$muted ? '🔇' : '🔊'}</button>
   {#if isHost && phase !== 'lobby'}

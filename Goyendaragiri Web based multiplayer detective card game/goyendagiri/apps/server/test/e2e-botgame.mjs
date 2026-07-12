@@ -60,6 +60,8 @@ try {
   ok(det && mur && acc && wit, 'all four special roles dealt');
   ok(det.view.seat === volunteerSeat, 'volunteer became the Detective');
   for (const b of bots) send(b, 'ready');
+  await waitFor(() => bots.every(b => b.view?.phase === 'study'), 'study');
+  send(det, 'beginNight');
   await waitFor(() => bots.every(b => b.view?.phase === 'nightIntro'), 'night');
 
   // 4) night sequence

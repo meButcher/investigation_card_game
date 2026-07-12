@@ -9,6 +9,7 @@ import {
 } from '@goyendagiri/rules';
 
 const GRACE_SECONDS = 120; // §3.5 v1.3
+const STUDY_SECONDS = 300;
 
 interface JoinOptions { name?: string }
 
@@ -18,6 +19,7 @@ export class GameRoom extends Room {
   private seatBySession = new Map<string, number>();
   private creatorSession: string | null = null;
   private presentationTimer: any = null;
+  private studyTimer: any = null;
 
   onCreate(options: { timerSec?: number | null; difficulty?: 3 | 4 | 5 } = {}) {
     this.setPrivate(true); // friends-play MVP: rooms joinable by id (the join code) only
@@ -83,13 +85,15 @@ export class GameRoom extends Room {
     // same room/code and every still-connected player; disconnected players are
     // dropped. This unsticks a game deadlocked on a vanished player's turn.
     if (type === 'resetLobby') {
-      if (client.sessionId !== this.creatorSession) return;
+      // creator anytime; ANY player once the game is over (v1.7 rematch flow)
+      if (client.sessionId !== this.creatorSession && this.game.phase !== 'gameOver') return;
       this.resetToLobby();
       return;
     }
 
     const map: Record<string, (p: any) => Action | null> = {
       ready: () => ({ type: 'READY', seat }),
+      beginNight: () => ({ type: 'BEGIN_NIGHT', seat }),
       callRole: () => ({ type: 'CALL_ROLE', seat, target: p.target }),
       revealAck: () => ({ type: 'REVEAL_ACK', seat }),
       pickSolution: () => ({ type: 'PICK_SOLUTION', seat, evidenceId: String(p.evidenceId), meansId: String(p.meansId) }),
@@ -121,6 +125,7 @@ export class GameRoom extends Room {
     const nowPending = this.game.pendingAccusation !== null;
     if (this.game.phase !== prevPhase || this.game.presentation?.idx !== prevIdx || prevPending !== nowPending) {
       this.armPresentationTimer();
+      this.armStudyTimer();
     }
     this.pushViews();
   }
@@ -137,6 +142,17 @@ export class GameRoom extends Room {
     }, t * 1000);
   }
 
+  /** Auto-advance study → night after STUDY_SECONDS; detective may force-start earlier. */
+  private armStudyTimer() {
+    if (this.studyTimer) { this.studyTimer.clear(); this.studyTimer = null; }
+    if (this.game.phase !== 'study') return;
+    const det = this.game.seats.find(s => s.role === 'detective');
+    if (!det) return;
+    this.studyTimer = this.clock.setTimeout(() => {
+      this.finish({ send: () => {} } as any, apply(this.game, { type: 'BEGIN_NIGHT', seat: det.seat }));
+    }, STUDY_SECONDS * 1000);
+  }
+
   private pushViews() {
     for (const c of this.clients) {
       const seat = this.seatBySession.get(c.sessionId);
@@ -150,6 +166,7 @@ export class GameRoom extends Room {
    *  host stays host. Called only by the creator via 'resetLobby'. */
   private resetToLobby() {
     if (this.presentationTimer) { this.presentationTimer.clear(); this.presentationTimer = null; }
+    if (this.studyTimer) { this.studyTimer.clear(); this.studyTimer = null; }
     // Only clients still in the room are connected (grace-held leavers are not in this.clients).
     const kept = this.clients.filter(c => this.seatBySession.get(c.sessionId) !== undefined);
     // Host first so it takes seat 0 and stays creator; others keep join order.
