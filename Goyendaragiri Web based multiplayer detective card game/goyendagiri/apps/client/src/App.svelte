@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { view, toast, tryReconnect, resetLobby } from './lib/net';
   import { sfx, muted, toggleMute, unlockAudio } from './lib/sound';
+  import { lang, t } from './lib/lang';
   import Landing from './screens/Landing.svelte';
   import Lobby from './screens/Lobby.svelte';
   import Initiation from './screens/Initiation.svelte';
@@ -68,6 +69,8 @@
 
 <!-- Fixed host + sound controls, available on every screen -->
 <div class="corner-ctl" bind:clientWidth={ctlW}>
+  <button class="ctl-btn" title="ভাষা-ক্রম বদলাও · flip language order"
+    on:click={() => lang.set($lang === 'bn' ? 'en' : 'bn')}>{$lang === 'bn' ? 'EN' : 'বাং'}</button>
   <button class="ctl-btn" title={$muted ? 'Unmute' : 'Mute'} aria-label="Toggle sound"
     on:click={() => { unlockAudio(); toggleMute(); }}>{$muted ? '🔇' : '🔊'}</button>
   {#if isHost && phase !== 'lobby'}
@@ -78,14 +81,14 @@
 {#if showReset}
   <div class="modal-back" role="button" tabindex="-1" on:click={() => (showReset = false)} on:keydown={(e) => e.key === 'Escape' && (showReset = false)}>
     <div class="modal" style="max-width:420px" on:click|stopPropagation role="presentation">
-      <h2>রুম রিসেট? · Reset the room?</h2>
+      <h2>{$t('রুম রিসেট? · Reset the room?')}</h2>
       <p class="dim" style="font-size:.85rem;margin:8px 0 4px">
         This ends the current game and returns everyone to the lobby. Connected players keep their seats and the
         <b>same room code</b>; disconnected players are dropped. Use this if the game is stuck on a player who left.
       </p>
       <div class="row" style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-        <button class="btn ghost" on:click={() => (showReset = false)}>বাতিল · Cancel</button>
-        <button class="btn danger" on:click={confirmReset}>⏏ রিসেট · Reset to lobby</button>
+        <button class="btn ghost" on:click={() => (showReset = false)}>{$t('বাতিল · Cancel')}</button>
+        <button class="btn danger" on:click={confirmReset}>{$t('⏏ রিসেট · Reset to lobby')}</button>
       </div>
     </div>
   </div>

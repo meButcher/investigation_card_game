@@ -1,7 +1,9 @@
 <script lang="ts">
   import { view, chat, send } from '../lib/net';
   import Card from './Card.svelte';
+  import NetStatus from './NetStatus.svelte';
   import { onDestroy } from 'svelte';
+  import { lang, t } from '../lib/lang';
 
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
@@ -106,17 +108,18 @@
   <div class="topbar">
     <span class="logo">🎩 গোয়েন্দাগিরি</span>
     <span class="chip">
-      {v.phase === 'evidence' ? `তদন্ত · Round ${v.round} — Evidence` :
+      {v.phase === 'evidence' ? $t(`তদন্ত · Round ${v.round} — Evidence`) :
        v.phase === 'presentation' ? `Round ${v.round} — Presentation` :
-       isFinal ? '⚖️ চূড়ান্ত সিদ্ধান্ত · Final decision' : '🕯 Witness hunt!'}
+       isFinal ? $t('⚖️ চূড়ান্ত সিদ্ধান্ত · Final decision') : '🕯 Witness hunt!'}
     </span>
+    <NetStatus />
     <span style="display:flex;gap:4px">
       {#each Array(v.settings.rounds) as _, i}
         <i style="width:8px;height:8px;border-radius:50%;background:{i < v.round ? 'var(--gold)' : 'var(--line)'}"></i>
       {/each}
     </span>
     {#if pending}
-      <span class="timer warn">⏸ গোয়েন্দা সিদ্ধান্ত নিচ্ছেন · Detective is deciding…</span>
+      <span class="timer warn">{$t('⏸ গোয়েন্দা সিদ্ধান্ত নিচ্ছেন · Detective is deciding…')}</span>
     {:else if v.phase === 'presentation'}
       <span class="timer" class:warn={remaining <= 10 && v.settings.timerSec !== null}>
         🎤 {nameOf(currentSeat ?? -1)}
@@ -125,7 +128,7 @@
     {:else if isFinal}
       <span class="timer">🗳 {awaitingVoters.length} vote{awaitingVoters.length === 1 ? '' : 's'} left</span>
     {:else}
-      <span class="timer">{isDet ? (needSwap ? '🔄 টাইল বদলাও · swap a tile' : 'মার্কার বসাও · place markers') : 'আলোচনা চলছে · discuss freely'}</span>
+      <span class="timer">{isDet ? (needSwap ? $t('🔄 টাইল বদলাও · swap a tile') : $t('মার্কার বসাও · place markers')) : $t('আলোচনা চলছে · discuss freely')}</span>
     {/if}
   </div>
 
@@ -133,7 +136,7 @@
     <div class="board-col scroll">
       {#if v.phase === 'witnessHunt'}
         <div class="panel" style="border-color:var(--danger);margin:12px 14px 0">
-          <h3 style="color:var(--danger)">🕯 সাক্ষী শিকার · The witness hunt</h3>
+          <h3 style="color:var(--danger)">{$t('🕯 সাক্ষী শিকার · The witness hunt')}</h3>
           <p style="font-size:.8rem">অপরাধ সমাধান হয়েছে! <b>{murdererSeatPub?.name}</b> (খুনী){#if accompliceSeatPub}&nbsp;ও <b>{accompliceSeatPub.name}</b> (সহযোগী){/if} প্রকাশিত। তারা সাক্ষীকে খুঁজে পেলে খুনী দল জিতবে।</p>
           {#if role === 'murderer'}
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
@@ -143,7 +146,7 @@
               {/each}
             </div>
             <button class="btn danger" style="margin-top:10px" disabled={huntPick === null}
-              on:click={() => send('pickWitness', { targetSeat: huntPick })}>এই সেই সাক্ষী! · Accuse the witness</button>
+              on:click={() => send('pickWitness', { targetSeat: huntPick })}>{$t('এই সেই সাক্ষী! · Accuse the witness')}</button>
           {:else if role === 'accomplice'}
             <p class="dim" style="font-size:.75rem;margin-top:8px">খুনীকে চ্যাটে পরামর্শ দাও — চূড়ান্ত সিদ্ধান্ত খুনীর।</p>
           {/if}
@@ -152,15 +155,15 @@
 
       {#if isFinal}
         <div class="panel" style="border-color:var(--gold);margin:12px 14px 0">
-          <h3>⚖️ চূড়ান্ত সিদ্ধান্ত · Final decision round</h3>
+          <h3>{$t('⚖️ চূড়ান্ত সিদ্ধান্ত · Final decision round')}</h3>
           <p style="font-size:.8rem">তিন রাউন্ড শেষ। যাদের তদন্ত কার্ড অব্যবহৃত, তারা এখন ভোট দেবে — অথবা বিরত থাকবে। All rounds are over: unspent investigation cards must now vote or abstain.</p>
           <p class="dim" style="font-size:.72rem;margin-top:6px">অপেক্ষায় · waiting on:
             {#each awaitingVoters as w, i}{i > 0 ? ', ' : ' '}<b class="goldtext">{w.name}</b>{/each}
           </p>
           {#if iMustVote}
             <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-              <button class="btn danger" disabled={!!pending} on:click={openSolve}>🔍 ভোট দাও · Cast my vote</button>
-              <button class="btn ghost" disabled={!!pending} on:click={() => send('abstain')}>🤐 বিরত থাকো · Abstain</button>
+              <button class="btn danger" disabled={!!pending} on:click={openSolve}>{$t('🔍 ভোট দাও · Cast my vote')}</button>
+              <button class="btn ghost" disabled={!!pending} on:click={() => send('abstain')}>{$t('🤐 বিরত থাকো · Abstain')}</button>
             </div>
           {/if}
         </div>
@@ -170,7 +173,7 @@
       <div class="tiles">
         {#each v.tray.tiles as tile, ti}
           <div class="tile" class:special={tile.kind !== 'scene'} class:cause={tile.kind === 'cause'} class:location={tile.kind === 'location'} class:replace-target={swapOpen && chosenIdx !== null && ti >= 2}>
-            <h4>{tile.bn} <em>{tile.en}</em></h4>
+            <h4>{$lang === 'bn' ? tile.bn : tile.en} <em>{$lang === 'bn' ? tile.en : tile.bn}</em></h4>
             <div class="clues">
               {#each tile.words as w, wi}
                 <span class="clue"
@@ -179,7 +182,7 @@
                   class:pickable={isDet && v.phase === 'evidence' && v.tray.markers[ti] === null && v.swapDoneThisRound}
                   role="button" tabindex="0"
                   on:click={() => tapWord(ti, wi)} on:keydown={e => e.key === 'Enter' && tapWord(ti, wi)}>
-                  {w.bn}<small>{w.en}</small>
+                  {$lang === 'bn' ? w.bn : w.en}<small>{$lang === 'bn' ? w.en : w.bn}</small>
                 </span>
               {/each}
             </div>
@@ -187,21 +190,21 @@
         {/each}
       </div>
       {#if needSwap}
-        <div style="padding:0 14px"><button class="btn gold" on:click={() => swapOpen = true}>{v.swapDraw ? '🃏 টাইল বদল চালিয়ে যাও · Continue the tile swap' : '🃏 নতুন টাইল তোলো · Draw new tiles'}</button></div>
+        <div style="padding:0 14px"><button class="btn gold" on:click={() => swapOpen = true}>{v.swapDraw ? $t('🃏 টাইল বদল চালিয়ে যাও · Continue the tile swap') : $t('🃏 নতুন টাইল তোলো · Draw new tiles')}</button></div>
       {/if}
       {#if isDet && pendingMark}
-        <div style="padding:8px 14px"><button class="btn gold" on:click={confirmMarker}>🎩 মার্কার নিশ্চিত করো · Confirm marker (final!)</button></div>
+        <div style="padding:8px 14px"><button class="btn gold" on:click={confirmMarker}>{$t('🎩 মার্কার নিশ্চিত করো · Confirm marker (final!)')}</button></div>
       {/if}
       {#if isDet && v.phase === 'presentation'}
         <div style="padding:8px 14px"><button class="btn ghost" on:click={() => send('forcePass')}>⏭ Force-pass current presenter</button></div>
       {/if}
       {#if myTurn}
-        <div style="padding:8px 14px"><button class="btn gold" on:click={() => send('pass')}>✋ শেষ · Pass — end my presentation</button></div>
+        <div style="padding:8px 14px"><button class="btn gold" on:click={() => send('pass')}>{$t('✋ শেষ · Pass — end my presentation')}</button></div>
       {/if}
 
       <div class="rail-row">
-        <p class="dim rail-label">সন্দেহভাজন · Suspects</p>
-        <button class="btn ghost cards-toggle" on:click={() => cardsView = true} aria-label="show all player cards">🃏 সব কার্ড · All cards ▸</button>
+        <p class="dim rail-label">{$t('সন্দেহভাজন · Suspects')}</p>
+        <button class="btn ghost cards-toggle" on:click={() => cardsView = true} aria-label="show all player cards">{$t('🃏 সব কার্ড · All cards ▸')}</button>
       </div>
       <div class="suspect-grid" style="--k:{v.settings.difficulty}">
         {#each suspects as s}
@@ -239,11 +242,11 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-top:1px solid var(--line)">
         {#if hasMemo}
-          <button class="btn ghost" style="border-color:var(--danger);color:var(--danger)" on:click={() => memoOpen = true}>🗂 কেস মেমো · Case memo</button>
+          <button class="btn ghost" style="border-color:var(--danger);color:var(--danger)" on:click={() => memoOpen = true}>{$t('🗂 কেস মেমো · Case memo')}</button>
         {/if}
-        <button class="btn ghost" on:click={() => showEasy = true}>🧿 সহজ তদন্ত · Easy Investigate</button>
+        <button class="btn ghost" on:click={() => showEasy = true}>{$t('🧿 সহজ তদন্ত · Easy Investigate')}</button>
         {#if canSolve}
-          <button class="btn danger" on:click={openSolve}>🔍 অপরাধের সমাধান · Solve the crime</button>
+          <button class="btn danger" on:click={openSolve}>{$t('🔍 অপরাধের সমাধান · Solve the crime')}</button>
         {/if}
       </div>
     </div>
@@ -254,12 +257,12 @@
     <div class="cards-view">
       <div class="cards-view-head">
         <button class="btn ghost back-btn" on:click={() => cardsView = false} aria-label="back to board">◂</button>
-        <b>🃏 সব কার্ড · All player cards</b>
+        <b>{$t('🃏 সব কার্ড · All player cards')}</b>
         <span class="dim" style="margin-left:auto;font-size:.62rem">hold to zoom</span>
       </div>
       <div class="cards-view-body scroll">
         {#if me.evidence.length || me.means.length}
-          <p class="dim rail-label">তোমার কার্ড · Your cards</p>
+          <p class="dim rail-label">{$t('তোমার কার্ড · Your cards')}</p>
           <div class="cards-wrap">
             {#each [...me.evidence, ...me.means] as c}
               <Card card={c} size="hand" />
@@ -321,21 +324,21 @@
   {#if memoOpen}
     <div class="modal-back" role="button" tabindex="0" on:click={() => memoOpen = false} on:keydown={e => e.key === 'Escape' && (memoOpen = false)}>
       <div class="modal" role="dialog" tabindex="-1" style="max-width:420px;border-color:var(--danger)" on:click|stopPropagation on:keydown|stopPropagation>
-        <h2 style="color:var(--danger)">🗂 কেস মেমো · Case memo <button class="btn ghost" style="float:right;padding:2px 10px" on:click={() => memoOpen = false}>✕</button></h2>
+        <h2 style="color:var(--danger)">{$t('🗂 কেস মেমো · Case memo')} <button class="btn ghost" style="float:right;padding:2px 10px" on:click={() => memoOpen = false}>✕</button></h2>
         {#if v.secret.murdererSeat !== undefined}
-          <p style="margin:12px 0 4px;font-size:.9rem">🗡 খুনী · The killer: <b style="color:var(--danger)">{nameOf(v.secret.murdererSeat)}{v.secret.murdererSeat === v.seat ? ' (you)' : ''}</b></p>
+          <p style="margin:12px 0 4px;font-size:.9rem">{$t('🗡 খুনী · The killer: ')}<b style="color:var(--danger)">{nameOf(v.secret.murdererSeat)}{v.secret.murdererSeat === v.seat ? ' (you)' : ''}</b></p>
         {/if}
         {#if memoCards.length}
-          <p class="dim" style="font-size:.7rem;margin:8px 0 6px">তার বেছে নেওয়া কার্ড · the chosen evidence & means</p>
+          <p class="dim" style="font-size:.7rem;margin:8px 0 6px">{$t('তার বেছে নেওয়া কার্ড · the chosen evidence & means')}</p>
           <div style="display:flex;gap:10px">
             {#each memoCards as c}{#if c}<Card card={c} size="big" />{/if}{/each}
           </div>
         {/if}
         {#if v.secret.accompliceSeat !== undefined}
-          <p style="margin:12px 0 0;font-size:.85rem">🤝 সহযোগী · Accomplice: <b style="color:#e08a3c">{nameOf(v.secret.accompliceSeat)}{v.secret.accompliceSeat === v.seat ? ' (you)' : ''}</b></p>
+          <p style="margin:12px 0 0;font-size:.85rem">{$t('🤝 সহযোগী · Accomplice: ')}<b style="color:#e08a3c">{nameOf(v.secret.accompliceSeat)}{v.secret.accompliceSeat === v.seat ? ' (you)' : ''}</b></p>
         {/if}
         {#if v.secret.witnessSeat !== undefined}
-          <p style="margin:8px 0 0;font-size:.85rem">🕯 সাক্ষী · Witness: <b style="color:#9b6dd6">{nameOf(v.secret.witnessSeat)}{v.secret.witnessSeat === v.seat ? ' (you)' : ''}</b></p>
+          <p style="margin:8px 0 0;font-size:.85rem">{$t('🕯 সাক্ষী · Witness: ')}<b style="color:#9b6dd6">{nameOf(v.secret.witnessSeat)}{v.secret.witnessSeat === v.seat ? ' (you)' : ''}</b></p>
         {/if}
       </div>
     </div>
@@ -345,7 +348,7 @@
   {#if pending && isDet}
     <div class="modal-back">
       <div class="modal" role="dialog" tabindex="-1" style="border-color:var(--gold)">
-        <h2>⚖️ তোমার রায় · Your verdict, Detective</h2>
+        <h2>{$t('⚖️ তোমার রায় · Your verdict, Detective')}</h2>
         <p style="font-size:.9rem;margin:10px 0">
           <b class="goldtext">{nameOf(pending.bySeat)}</b> votes
           <b style="color:var(--danger)">{nameOf(pending.suspectSeat)}</b> as the killer, with:
@@ -357,8 +360,8 @@
         </div>
         <p class="dim" style="font-size:.75rem;margin-bottom:14px">তুমি কি একমত? Do you agree? তোমার কথাই শেষ কথা — the game will not overrule you.</p>
         <div style="display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn ghost" on:click={() => send('verdict', { agree: false })}>✗ না · No</button>
-          <button class="btn gold" on:click={() => send('verdict', { agree: true })}>✓ হ্যাঁ · Yes</button>
+          <button class="btn ghost" on:click={() => send('verdict', { agree: false })}>{$t('✗ না · No')}</button>
+          <button class="btn gold" on:click={() => send('verdict', { agree: true })}>{$t('✓ হ্যাঁ · Yes')}</button>
         </div>
       </div>
     </div>
@@ -368,7 +371,7 @@
   {#if swapOpen && needSwap}
     <div class="modal-back">
       <div class="modal" role="dialog" tabindex="-1" style="max-width:720px;text-align:center">
-        <h2>🃏 নতুন সূত্র · Draw new scene tiles</h2>
+        <h2>{$t('🃏 নতুন সূত্র · Draw new scene tiles')}</h2>
         {#if !v.swapDraw}
           <p class="dim" style="font-size:.78rem;margin:10px 0 16px">ডেকে চাপ দাও — দুটি টাইল উঠবে, একটি বেছে নেবে। Tap the deck: two tiles rise, you keep one.</p>
           <button class="deck" on:click={() => send('swapDraw')} aria-label="draw from deck">
@@ -381,9 +384,9 @@
               <div class="draw-tile" class:chosen={chosenIdx === i} role="button" tabindex="0"
                 on:click={() => chosenIdx = i} on:keydown={e => e.key === 'Enter' && (chosenIdx = i)}
                 style="animation-delay:{i * 0.25}s">
-                <h4 style="color:var(--gold);font-size:.85rem;margin-bottom:6px">{t.bn} <em class="dim" style="font-style:normal;font-size:.65rem">{t.en}</em></h4>
+                <h4 style="color:var(--gold);font-size:.85rem;margin-bottom:6px">{$lang === 'bn' ? t.bn : t.en} <em class="dim" style="font-style:normal;font-size:.65rem">{$lang === 'bn' ? t.en : t.bn}</em></h4>
                 <div class="clues" style="text-align:left">
-                  {#each t.words as w}<span class="clue">{w.bn}<small>{w.en}</small></span>{/each}
+                  {#each t.words as w}<span class="clue">{$lang === 'bn' ? w.bn : w.en}<small>{$lang === 'bn' ? w.en : w.bn}</small></span>{/each}
                 </div>
               </div>
             {/each}
@@ -399,11 +402,14 @@
               {/each}
             </div>
             <button class="btn gold" style="margin-top:16px;min-width:220px" disabled={replaceIdx === null} on:click={confirmSwap}>
-              🔄 বদলে দাও · Swap it in
+              {$t('🔄 বদলে দাও · Swap it in')}
             </button>
           {/if}
+          <div style="margin-top:14px">
+            <button class="btn ghost" on:click={() => send('swapDecline')}>{$t('✋ কিছুই বদলাবো না · Keep the board as is')}</button>
+          </div>
         {/if}
-        <button class="btn ghost" style="margin-top:16px" on:click={() => swapOpen = false}>🧿 টেবিল দেখে নাও · Inspect the table first — your draw is saved</button>
+        <button class="btn ghost" style="margin-top:16px" on:click={() => swapOpen = false}>{$t('🧿 টেবিল দেখে নাও · Inspect the table first — your draw is saved')}</button>
       </div>
     </div>
   {/if}
@@ -412,8 +418,8 @@
   {#if showEasy}
     <div class="modal-back" role="button" tabindex="0" on:click={() => showEasy = false} on:keydown={e => e.key === 'Escape' && (showEasy = false)}>
       <div class="modal" style="max-width:900px" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
-        <h2>🧿 সহজ তদন্ত · Easy Investigate <button class="btn ghost" style="float:right;padding:2px 10px" on:click={() => showEasy = false}>✕</button></h2>
-        <p class="dim" style="font-size:.7rem;margin-bottom:10px">গোয়েন্দার সূত্র · only the marked words:</p>
+        <h2>{$t('🧿 সহজ তদন্ত · Easy Investigate')} <button class="btn ghost" style="float:right;padding:2px 10px" on:click={() => showEasy = false}>✕</button></h2>
+        <p class="dim" style="font-size:.7rem;margin-bottom:10px">{$t('গোয়েন্দার সূত্র · only the marked words:')}</p>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
           {#each v.tray.tiles as t, i}
             <span class="chip" style="border-style:{v.tray.markers[i] === null ? 'dashed' : 'solid'}">
@@ -441,7 +447,7 @@
   {#if solveOpen}
     <div class="modal-back" role="button" tabindex="0" on:click={() => solveOpen = false} on:keydown={e => e.key === 'Escape' && (solveOpen = false)}>
       <div class="modal" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown|stopPropagation>
-        <h2>🔍 অপরাধের সমাধান · Solve the crime</h2>
+        <h2>{$t('🔍 অপরাধের সমাধান · Solve the crime')}</h2>
         <p style="font-size:.75rem;color:var(--danger);margin-bottom:12px">⚠️ এটি তোমার একমাত্র তদন্ত কার্ড খরচ করবে — ভুল হলে চিরতরে। Consumes your only Investigation Card.</p>
         <p class="dim" style="font-size:.72rem;margin-bottom:6px">১ · সন্দেহভাজন · suspect (self-accusation allowed)</p>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
@@ -465,8 +471,8 @@
           </div>
         {/if}
         <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
-          <button class="btn ghost" on:click={() => solveOpen = false}>বাতিল · Cancel</button>
-          <button class="btn danger" disabled={sSuspect === null || !sEv || !sMn} on:click={accuse}>অভিযোগ! · Accuse!</button>
+          <button class="btn ghost" on:click={() => solveOpen = false}>{$t('বাতিল · Cancel')}</button>
+          <button class="btn danger" disabled={sSuspect === null || !sEv || !sMn} on:click={accuse}>{$t('অভিযোগ! · Accuse!')}</button>
         </div>
       </div>
     </div>

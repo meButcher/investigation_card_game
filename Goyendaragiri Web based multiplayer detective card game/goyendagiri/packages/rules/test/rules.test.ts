@@ -101,6 +101,16 @@ describe('setup & roles', () => {
       for (const c of [...seat.evidence, ...seat.means]) { expect(ids.has(c.id)).toBe(false); ids.add(c.id); }
     }
   });
+  it('bots are never dealt the detective role', () => {
+    for (const seed of [1, 7, 13, 42]) {
+      let s = createLobby();
+      s = addPlayer(s, 'Human');
+      for (let i = 0; i < 5; i++) s = addPlayer(s, `Bot${i}`, true);
+      const r = start(s, 0, rng(seed));
+      expect(r.error).toBeUndefined();
+      expect(r.next.seats.find(x => x.role === 'detective')!.isBot).toBeFalsy();
+    }
+  });
 });
 
 describe('night sequence', () => {
@@ -196,6 +206,22 @@ describe('evidence, swap & presentation', () => {
     s = must(apply(s, { type: 'PLACE_MARKER', seat: det, tileIdx: 3, wordIdx: 1 }));
     expect(s.phase).toBe('presentation');
   });
+  it('detective may decline the swap: board unchanged, tiles return to deck', () => {
+    let s = passAll(placeAllMarkers(throughNight(6)));
+    const det = seatOf(s, 'detective');
+    const tilesBefore = s.tray.tiles.map(t => t.id);
+    const deckBefore = s.sceneDeck.length;
+    s = must(apply(s, { type: 'SWAP_DRAW', seat: det }));
+    s = must(apply(s, { type: 'SWAP_DECLINE', seat: det }));
+    expect(s.swapDraw).toBeNull();
+    expect(s.swapDoneThisRound).toBe(true);
+    expect(s.sceneDeck.length).toBe(deckBefore);
+    expect(s.tray.tiles.map(t => t.id)).toEqual(tilesBefore);
+    // all markers were already placed and none were freed → presentations begin at once
+    expect(s.phase).toBe('presentation');
+    expect(s.round).toBe(2);
+  });
+
   it('only scene tiles (2..5) can be replaced', () => {
     let s = passAll(placeAllMarkers(throughNight(6)));
     const det = seatOf(s, 'detective');

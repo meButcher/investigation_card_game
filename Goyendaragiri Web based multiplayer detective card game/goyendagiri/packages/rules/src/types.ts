@@ -16,6 +16,7 @@ export interface Seat {
   role: Role;
   evidence: Card[]; means: Card[];
   hasInvestigationCard: boolean;
+  isBot?: boolean;
 }
 
 export interface GameSettings {
@@ -71,6 +72,7 @@ export type Action =
   | { type: 'PLACE_MARKER'; seat: number; tileIdx: number; wordIdx: number }
   | { type: 'SWAP_DRAW'; seat: number }
   | { type: 'SWAP_CHOOSE'; seat: number; chosenIdx: number; discardTileIdx: number }
+  | { type: 'SWAP_DECLINE'; seat: number }
   | { type: 'PASS'; seat: number }
   | { type: 'FORCE_PASS'; seat: number }
   | { type: 'ACCUSE'; seat: number; suspectSeat: number; evidenceId: string; meansId: string }
@@ -85,6 +87,7 @@ export interface PublicSeat {
   seat: number; name: string; connected: boolean; ready: boolean;
   evidence: Card[]; means: Card[]; hasInvestigationCard: boolean;
   isDetective: boolean;
+  isBot?: boolean;
   revealedRole?: Role;
 }
 

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { view, roomCode, send, leave } from '../lib/net';
+  import NetStatus from './NetStatus.svelte';
+  import { lang, t } from '../lib/lang';
   $: v = $view!;
   $: isCreator = v.seat === v.creatorSeat;
   $: canStart = v.seats.length >= 4 && v.seats.length <= 12;
@@ -12,6 +14,7 @@
     copied = true; setTimeout(() => copied = false, 1800);
   }
   function tapPlayer(seat) {
+    if (v.seats.find(x => x.seat === seat)?.isBot) return;
     if (isCreator && volunteerMode) send('updateSettings', { volunteerSeat: v.volunteerSeat === seat ? null : seat });
   }
   function cycleRounds() {
@@ -20,19 +23,25 @@
     const next = current === 3 ? 4 : current === 4 ? 5 : current === 5 ? 2 : 3;
     send('updateSettings', { rounds: next });
   }
+  // ART HOOK: /art/avatars/av1..av12.png — the img hides itself if the file is missing (docs/ART-ASSETS.md)
+  const hideImg = (e: Event) => ((e.currentTarget as HTMLImageElement).style.display = 'none');
 </script>
 
-<div class="screen">
+<div class="screen lobby-bg">
   <div class="topbar">
     <span class="logo">🎩 গোয়েন্দাগিরি</span>
-    <span class="chip">লবি · Lobby</span>
+    <span class="chip">{$t('লবি · Lobby')}</span>
+    <NetStatus />
     <span class="timer">{v.seats.length} / 12 players</span>
-    <span class="chip" style="color:var(--dim);border-color:var(--line)">বাং | EN</span>
+    <span class="seg" title={$t('তোমার নিজের ভাষা-ক্রম · your own language order — only affects your screen')}>
+      <button class:on={$lang === 'bn'} on:click={() => lang.set('bn')}>বাং</button>
+      <button class:on={$lang === 'en'} on:click={() => lang.set('en')}>EN</button>
+    </span>
   </div>
   <div class="scroll" style="padding:16px;display:flex;flex-wrap:wrap;gap:14px;align-content:flex-start">
     <div style="flex:2;min-width:300px;display:flex;flex-direction:column;gap:12px">
       <div class="panel">
-        <h3>রুম কোড · Room code</h3>
+        <h3>{$t('রুম কোড · Room code')}</h3>
         <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel3);border:1px dashed var(--gold-dim);border-radius:10px;padding:10px 16px">
           <b class="serif" style="font-size:2rem;letter-spacing:5px;color:var(--gold);text-shadow:0 0 18px rgba(217,169,78,.45),0 2px 2px rgba(0,0,0,.6)">{$roomCode}</b>
           <span class="dim" style="font-size:.72rem">share this link with friends</span>
@@ -50,9 +59,10 @@
             <div role="button" tabindex="0"
               style="display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid {v.volunteerSeat === s.seat ? 'var(--gold)' : 'var(--line)'};border-radius:9px;padding:7px 10px;font-size:.8rem;opacity:{s.connected ? 1 : 0.5};cursor:{isCreator && volunteerMode ? 'pointer' : 'default'}"
               on:click={() => tapPlayer(s.seat)} on:keydown={e => e.key === 'Enter' && tapPlayer(s.seat)}>
-              <span class="avatar">🕵</span>{s.name}
+              <span class="avatar pav">🕵<img src="/art/avatars/av{(s.seat % 12) + 1}.png" alt="" loading="lazy" on:error={hideImg} /></span>{s.name}
               {#if v.volunteerSeat === s.seat}<span title="volunteer detective">🎩</span>{/if}
               {#if s.seat === v.creatorSeat}<span class="badge you">HOST</span>{/if}
+              {#if s.isBot}<span class="badge">🤖 bot</span>{/if}
               {#if s.seat === v.seat}<span class="badge">you</span>{/if}
               {#if !s.connected}<span class="badge spent">⚠︎</span>{/if}
             </div>
@@ -63,6 +73,16 @@
             </div>
           {/each}
         </div>
+        {#if isCreator}
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            {#if v.seats.length < 12}
+              <button class="btn ghost" on:click={() => send('addBot')}>{$t('🤖 বট যোগ করো · Add a bot')}</button>
+            {/if}
+            {#if v.seats.some(s => s.isBot)}
+              <button class="btn ghost" on:click={() => send('removeBot')}>{$t('➖ বট সরাও · Remove a bot')}</button>
+            {/if}
+          </div>
+        {/if}
       </div>
     </div>
     <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
@@ -129,8 +149,8 @@
       </div>
       <div class="panel dim" style="font-size:.75rem">🎙 Voice: create a Discord call and share it here. In-game text chat is always available.</div>
       {#if isCreator}
-        <button class="btn gold big" disabled={!canStart} on:click={() => send('start')}>
-          খেলা শুরু করুন · Start investigation{v.seats.length < 4 ? ` (need ${4 - v.seats.length} more)` : ''}
+        <button class="btn gold big start-plate" disabled={!canStart} on:click={() => send('start')}>
+          {$t('খেলা শুরু করুন · Start investigation')}{v.seats.length < 4 ? ` (need ${4 - v.seats.length} more)` : ''}
         </button>
       {:else}
         <div class="panel dim" style="text-align:center;font-size:.8rem">Waiting for the host to start…</div>
@@ -141,6 +161,20 @@
 </div>
 
 <style>
+  /* ── ART HOOKS (docs/ART-ASSETS.md) — all degrade gracefully when the file is absent ── */
+  /* lobby scene: drop /art/bg-lobby.png to replace the default desk backdrop */
+  .lobby-bg{background:
+    linear-gradient(rgba(18,10,16,.55),rgba(10,5,9,.78)),
+    url('/art/bg-lobby.png') center/cover no-repeat fixed}
+  /* player avatars: /art/avatars/av1..av12.png over the 🕵 fallback */
+  .pav{position:relative;overflow:hidden}
+  .pav :global(img){position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
+  /* brass start plate: /art/ui/btn-brass.png stretches over the gold gradient */
+  .start-plate{background:
+    url('/art/ui/btn-brass.png') center/100% 100% no-repeat,
+    linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--gold-lo));
+    font-family:'Noto Serif Bengali','Hind Siliguri',serif;letter-spacing:.5px;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+
   .settings-card {
     position: relative;
     background: #ded6c5; /* Antique warm paper/parchment background */

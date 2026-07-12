@@ -20,6 +20,7 @@ export class GameRoom extends Room {
   private creatorSession: string | null = null;
   private presentationTimer: any = null;
   private studyTimer: any = null;
+  private botTimer: any = null;
 
   onCreate(options: { timerSec?: number | null; difficulty?: 3 | 4 | 5 } = {}) {
     this.setPrivate(true); // friends-play MVP: rooms joinable by id (the join code) only
@@ -91,6 +92,38 @@ export class GameRoom extends Room {
       return;
     }
 
+    // host-only lobby bot management (alpha testing)
+    if (type === 'addBot') {
+      if (client.sessionId !== this.creatorSession || this.game.phase !== 'lobby') return;
+      if (this.game.seats.length >= 12) return;
+      const n = this.game.seats.filter(s => s.isBot).length + 1;
+      this.game = addPlayer(this.game, `🤖 বট ${n}`, true);
+      this.pushViews();
+      return;
+    }
+    if (type === 'removeBot') {
+      if (client.sessionId !== this.creatorSession || this.game.phase !== 'lobby') return;
+      const bot = [...this.game.seats].reverse().find(s => s.isBot);
+      if (!bot) return;
+      const remaining = this.game.seats.filter(s => s.seat !== bot.seat);
+      const remap = new Map(remaining.map((s, i) => [s.seat, i]));
+      const nextMap = new Map<string, number>();
+      for (const [sid, old] of this.seatBySession) {
+        const n = remap.get(old);
+        if (n !== undefined) nextMap.set(sid, n);
+      }
+      this.seatBySession = nextMap;
+      const vol = this.game.volunteerSeat;
+      this.game = {
+        ...this.game,
+        seats: remaining.map((s, i) => ({ ...s, seat: i })),
+        creatorSeat: remap.get(this.game.creatorSeat) ?? 0,
+        volunteerSeat: vol === null || vol === bot.seat ? null : remap.get(vol) ?? null,
+      };
+      this.pushViews();
+      return;
+    }
+
     const map: Record<string, (p: any) => Action | null> = {
       ready: () => ({ type: 'READY', seat }),
       beginNight: () => ({ type: 'BEGIN_NIGHT', seat }),
@@ -102,6 +135,7 @@ export class GameRoom extends Room {
       placeMarker: () => ({ type: 'PLACE_MARKER', seat, tileIdx: Number(p.tileIdx), wordIdx: Number(p.wordIdx) }),
       swapDraw: () => ({ type: 'SWAP_DRAW', seat }),
       swapChoose: () => ({ type: 'SWAP_CHOOSE', seat, chosenIdx: Number(p.chosenIdx), discardTileIdx: Number(p.discardTileIdx) }),
+      swapDecline: () => ({ type: 'SWAP_DECLINE', seat }),
       verdict: () => ({ type: 'VERDICT', seat, agree: !!p.agree }),
       abstain: () => ({ type: 'ABSTAIN', seat }),
       pass: () => ({ type: 'PASS', seat }),
@@ -128,6 +162,7 @@ export class GameRoom extends Room {
       this.armStudyTimer();
     }
     this.pushViews();
+    this.armBots();
   }
 
   /** Server-driven presentation countdown (§3.4). ∞ mode = no timer. */
@@ -153,6 +188,51 @@ export class GameRoom extends Room {
     }, STUDY_SECONDS * 1000);
   }
 
+  /** Bots act one beat at a time; every finish() re-arms until nothing is pending. */
+  private armBots() {
+    if (this.botTimer) { this.botTimer.clear(); this.botTimer = null; }
+    const g = this.game;
+    if (g.winner) return;
+    const bots = g.seats.filter(s => s.isBot);
+    if (!bots.length) return;
+    const act = (delay: number, action: Action) => {
+      this.botTimer = this.clock.setTimeout(
+        () => this.finish({ send: () => {} } as any, apply(this.game, action)), delay);
+    };
+    if (g.phase === 'initiation') {
+      const b = bots.find(x => !x.ready);
+      if (b) return act(900, { type: 'READY', seat: b.seat });
+    }
+    if (g.night.awaitingReveal) {
+      const called = g.seats.find(x => x.role === g.night.awaitingReveal);
+      if (called?.isBot) return act(1200, { type: 'REVEAL_ACK', seat: called.seat });
+    }
+    if (g.phase === 'nightKiller') {
+      const mur = g.seats.find(x => x.role === 'murderer');
+      if (mur?.isBot && !g.solution) {
+        const ev = mur.evidence[Math.floor(Math.random() * mur.evidence.length)];
+        const mn = mur.means[Math.floor(Math.random() * mur.means.length)];
+        return act(1500, { type: 'PICK_SOLUTION', seat: mur.seat, evidenceId: ev.id, meansId: mn.id });
+      }
+    }
+    if (g.phase === 'presentation' && g.presentation) {
+      const cur = g.presentation.order[g.presentation.idx];
+      if (g.seats.find(x => x.seat === cur)?.isBot) return act(4000, { type: 'PASS', seat: cur });
+    }
+    if (g.phase === 'finalVote') {
+      const b = bots.find(x => x.role !== 'detective' && x.hasInvestigationCard && !g.finalActed.includes(x.seat));
+      if (b) return act(2000, { type: 'ABSTAIN', seat: b.seat });
+    }
+    if (g.phase === 'witnessHunt') {
+      const mur = g.seats.find(x => x.role === 'murderer');
+      if (mur?.isBot) {
+        const targets = g.seats.filter(x => x.role !== 'detective' && x.role !== 'murderer' && x.role !== 'accomplice');
+        const t = targets[Math.floor(Math.random() * targets.length)];
+        if (t) return act(3000, { type: 'PICK_WITNESS', seat: mur.seat, targetSeat: t.seat });
+      }
+    }
+  }
+
   private pushViews() {
     for (const c of this.clients) {
       const seat = this.seatBySession.get(c.sessionId);
@@ -167,6 +247,7 @@ export class GameRoom extends Room {
   private resetToLobby() {
     if (this.presentationTimer) { this.presentationTimer.clear(); this.presentationTimer = null; }
     if (this.studyTimer) { this.studyTimer.clear(); this.studyTimer = null; }
+    if (this.botTimer) { this.botTimer.clear(); this.botTimer = null; }
     // Only clients still in the room are connected (grace-held leavers are not in this.clients).
     const kept = this.clients.filter(c => this.seatBySession.get(c.sessionId) !== undefined);
     // Host first so it takes seat 0 and stays creator; others keep join order.
@@ -187,6 +268,7 @@ export class GameRoom extends Room {
     // Preserve chosen settings but clear any stale seat references.
     this.game = { ...g, creatorSeat, settings: { ...this.game.settings }, volunteerSeat: null };
     this.pushViews();
+    this.armBots();
   }
 
   onJoin(client: Client, options: JoinOptions = {}) {
@@ -225,13 +307,24 @@ export class GameRoom extends Room {
         this.creatorSession = null;
       }
     }
-    // lobby departures free the seat entirely (post-game leavers keep theirs for the reveal)
+    // lobby departures free the seat entirely (post-game leavers keep theirs for the reveal).
+    // Seats are re-indexed 0..n-1 — new joins use seat = seats.length, so gaps would collide.
     if (this.game.phase === 'lobby') {
       this.seatBySession.delete(client.sessionId);
+      const remaining = this.game.seats.filter(s => s.seat !== seat);
+      const remap = new Map(remaining.map((s, i) => [s.seat, i]));
+      const nextMap = new Map<string, number>();
+      for (const [sid, old] of this.seatBySession) {
+        const n = remap.get(old);
+        if (n !== undefined) nextMap.set(sid, n);
+      }
+      this.seatBySession = nextMap;
+      const vol = this.game.volunteerSeat;
       this.game = {
         ...this.game,
-        seats: this.game.seats.filter(s => s.seat !== seat),
-        volunteerSeat: this.game.volunteerSeat === seat ? null : this.game.volunteerSeat,
+        seats: remaining.map((s, i) => ({ ...s, seat: i })),
+        creatorSeat: remap.get(this.game.creatorSeat) ?? 0,
+        volunteerSeat: vol === null || vol === seat ? null : remap.get(vol) ?? null,
       };
     }
     this.pushViews();

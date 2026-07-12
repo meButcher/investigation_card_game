@@ -36,11 +36,12 @@ export function createLobby(settings: Partial<GameSettings> = {}): GameState {
   };
 }
 
-export function addPlayer(s: GameState, name: string): GameState {
+export function addPlayer(s: GameState, name: string, isBot = false): GameState {
   const seat = s.seats.length;
   const seats = [...s.seats, {
     seat, name, connected: true, ready: false,
     role: 'investigator' as Role, evidence: [], means: [], hasInvestigationCard: false,
+    isBot,
   }];
   return { ...s, seats };
 }
@@ -66,6 +67,16 @@ function deal(s: GameState, rand: () => number): GameState {
     order = s.seats.map(seat => seat.seat === volunteer ? 'detective' as Role : shuffledOthers.pop()!);
   } else {
     order = shuffled(['detective' as Role, ...shuffledOthers], rand);
+  }
+
+  // bots never take the detective role — swap it onto a random human
+  const detIdx = order.findIndex(r => r === 'detective');
+  if (detIdx >= 0 && s.seats[detIdx]?.isBot) {
+    const humans = s.seats.map((x, i) => (x.isBot ? -1 : i)).filter(i => i >= 0);
+    if (humans.length) {
+      const h = humans[Math.floor(rand() * humans.length)];
+      [order[detIdx], order[h]] = [order[h], order[detIdx]];
+    }
   }
 
   const evDeck = shuffled(EVIDENCE_DECK, rand);
@@ -282,6 +293,18 @@ export function apply(s: GameState, a: Action): ApplyResult {
       };
     }
 
+    case 'SWAP_DECLINE': {
+      if (actor.role !== 'detective' || !s.swapDraw) return err(s, 'nothing drawn');
+      let next = log({
+        ...s, swapDraw: null, swapDoneThisRound: true,
+        sceneDeck: [...s.sceneDeck, ...s.swapDraw],   // both drawn tiles go under the deck
+      }, '✋ গোয়েন্দা টাইল বদলালেন না · Detective keeps the board unchanged');
+      // no tile replaced → no marker slot freed; if the tray is already full, go
+      // straight to presentations (otherwise the round could never advance)
+      if (next.tray.markers.every(m => m !== null)) next = startPresentation(next);
+      return { next };
+    }
+
     case 'PASS': {
       if (s.phase !== 'presentation') return err(s, 'not presenting');
       const cur = s.presentation!.order[s.presentation!.idx];
@@ -385,6 +408,7 @@ export function buildViewFor(seat: number, s: GameState): ClientView {
       seat: x.seat, name: x.name, connected: x.connected, ready: x.ready,
       evidence: x.evidence, means: x.means, hasInvestigationCard: x.hasInvestigationCard,
       isDetective: x.role === 'detective',
+      isBot: x.isBot,
     };
     if (revealAll) pub.revealedRole = x.role;
     else if (revealCulprits && (x.role === 'murderer' || x.role === 'accomplice')) pub.revealedRole = x.role;

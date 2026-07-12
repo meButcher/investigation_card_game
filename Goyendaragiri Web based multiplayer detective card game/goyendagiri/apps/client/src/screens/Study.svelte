@@ -1,7 +1,9 @@
 <script lang="ts">
   import { view, send } from '../lib/net';
   import Card from './Card.svelte';
+  import NetStatus from './NetStatus.svelte';
   import { onDestroy } from 'svelte';
+  import { t } from '../lib/lang';
   $: v = $view!;
   $: isDet = v.yourRole === 'detective';
   $: players = v.seats.filter(s => !s.isDetective);
@@ -20,7 +22,8 @@
 <div class="screen">
   <div class="topbar">
     <span class="logo">🎩 গোয়েন্দাগিরি</span>
-    <span class="chip">🃏 পর্যবেক্ষণ · Study the table</span>
+    <span class="chip">{$t('🃏 পর্যবেক্ষণ · Study the table')}</span>
+    <NetStatus />
     <span class="timer" class:warn={remaining <= 30}>⏳ {mm}:{ss}</span>
   </div>
   <div class="scroll" style="display:flex;flex-direction:column;align-items:center;padding:16px">
@@ -30,10 +33,10 @@
       </p>
       {#if isDet}
         <button class="btn gold big" style="max-width:420px;margin-bottom:14px" on:click={() => send('beginNight')}>
-          ⏩ রাত শুরু করো · Skip the timer — start the night
+          {$t('⏩ রাত শুরু করো · Skip the timer — start the night')}
         </button>
       {:else}
-        <p class="dim" style="font-size:.72rem;margin-bottom:12px">সময় শেষ হলে বা গোয়েন্দা চাইলে রাত নামবে · night begins when the timer ends or the Detective starts it</p>
+        <p class="dim" style="font-size:.72rem;margin-bottom:12px">{$t('সময় শেষ হলে বা গোয়েন্দা চাইলে রাত নামবে · night begins when the timer ends or the Detective starts it')}</p>
       {/if}
       {#each players as s}
         <div class="study-row">
@@ -53,9 +56,9 @@
 
 <style>
   .study-center{margin:auto;display:flex;flex-direction:column;align-items:center;width:100%;max-width:860px}
-  .study-row{width:100%;margin-bottom:10px}
-  .rail-label{font-size:.7rem;padding:2px 0 6px;text-transform:uppercase;letter-spacing:1px}
-  .study-cards{display:grid;grid-template-columns:repeat(var(--k,4),max-content);gap:8px}
+  .study-row{width:100%;margin-bottom:10px;display:flex;flex-direction:column;align-items:center}
+  .rail-label{font-size:.7rem;padding:2px 0 6px;text-transform:uppercase;letter-spacing:1px;text-align:center}
+  .study-cards{display:grid;grid-template-columns:repeat(var(--k,4),max-content);gap:8px;justify-content:center}
   @media (max-width:1023px){.study-cards{display:flex;flex-wrap:wrap}}
   .timer.warn{color:var(--danger);border-color:var(--danger)}
 </style>
