@@ -3,7 +3,7 @@
   import Card from './Card.svelte';
   import NetStatus from './NetStatus.svelte';
   import { onDestroy } from 'svelte';
-  import { t } from '../lib/lang';
+  import { lang, t } from '../lib/lang';
   $: v = $view!;
   $: isDet = v.yourRole === 'detective';
   $: players = v.seats.filter(s => !s.isDetective);
@@ -15,13 +15,13 @@
   $: mm = Math.floor(remaining / 60); $: ss = String(remaining % 60).padStart(2, '0');
 
   const roleShort: Record<string, string> = {
-    detective: '🎩 গোয়েন্দা', murderer: '🗡 খুনী', accomplice: '🤝 সহযোগী', witness: '🕯 সাক্ষী', investigator: '🔎 তদন্তকারী',
+    detective: '🎩 গোয়েন্দা · Detective', murderer: '🗡 খুনী · Murderer', accomplice: '🤝 সহযোগী · Accomplice', witness: '🕯 সাক্ষী · Witness', investigator: '🔎 তদন্তকারী · Investigator',
   };
 </script>
 
 <div class="screen">
   <div class="topbar">
-    <span class="logo">🎩 গোয়েন্দাগিরি</span>
+    <span class="logo">🎩 {$lang === 'bn' ? 'গোয়েন্দাগিরি' : 'Goyendagiri'}</span>
     <span class="chip">{$t('🃏 পর্যবেক্ষণ · Study the table')}</span>
     <NetStatus />
     <span class="timer" class:warn={remaining <= 30}>⏳ {mm}:{ss}</span>
@@ -41,7 +41,7 @@
       {#each players as s}
         <div class="study-row">
           <p class="dim rail-label">🕵 <b style="color:var(--ink)">{s.name}</b>{s.seat === v.seat ? ' — you' : ''}
-            {#if s.seat === v.seat}<span class="badge" style="margin-left:6px;border-color:var(--gold);color:var(--gold);text-transform:none">{roleShort[v.yourRole]}</span>{/if}
+            {#if s.seat === v.seat}<span class="badge" style="margin-left:6px;border-color:var(--gold);color:var(--gold);text-transform:none">{$t(roleShort[v.yourRole])}</span>{/if}
           </p>
           <div class="study-cards" style="--k:{v.settings.difficulty}">
             {#each [...s.evidence, ...s.means] as c}

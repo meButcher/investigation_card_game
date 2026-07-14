@@ -29,7 +29,7 @@
 
 <div class="screen lobby-bg">
   <div class="topbar">
-    <span class="logo">🎩 গোয়েন্দাগিরি</span>
+    <span class="logo">🎩 {$lang === 'bn' ? 'গোয়েন্দাগিরি' : 'Goyendagiri'}</span>
     <span class="chip">{$t('লবি · Lobby')}</span>
     <NetStatus />
     <span class="timer">{v.seats.length} / 12 players</span>
@@ -49,7 +49,7 @@
         </div>
       </div>
       <div class="panel" style="flex:1">
-        <h3>খেলোয়াড় · Players ({v.seats.length}/12)
+        <h3>{$t('খেলোয়াড় · Players')} ({v.seats.length}/12)
           {#if isCreator && volunteerMode}
             <span class="dim" style="font-weight:400;font-size:.68rem"> — tap a player to make them the Detective 🎩</span>
           {/if}
@@ -87,14 +87,14 @@
     </div>
     <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:12px">
       <div class="settings-card">
-        <h3>⚙ সেটিংস • GAME SETTINGS</h3>
+        <h3>⚙ {$lang === 'bn' ? 'সেটিংস • GAME SETTINGS' : 'GAME SETTINGS • সেটিংস'}</h3>
         
         <div class="setting">
           <span class="setting-label">📊 DIFFICULTY</span>
           <span class="seg">
             {#each [3, 4, 5] as d}
               <button class:on={v.settings.difficulty === d} disabled={!isCreator}
-                on:click={() => send('updateSettings', { difficulty: d })}>{d === 3 ? 'সহজ ৩' : d === 4 ? 'মধ্যম ৪' : 'কঠিন ৫'}</button>
+                on:click={() => send('updateSettings', { difficulty: d })}>{$lang === 'bn' ? (d === 3 ? 'সহজ ৩' : d === 4 ? 'মধ্যম ৪' : 'কঠিন ৫') : (d === 3 ? 'Easy 3' : d === 4 ? 'Medium 4' : 'Hard 5')}</button>
             {/each}
           </span>
         </div>

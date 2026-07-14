@@ -2,7 +2,7 @@
   import { view, send } from '../lib/net';
   import Card from './Card.svelte';
   import NetStatus from './NetStatus.svelte';
-  import { t } from '../lib/lang';
+  import { lang, t } from '../lib/lang';
   $: v = $view!;
   $: me = v.seats.find(s => s.seat === v.seat)!;
   $: role = v.yourRole;
@@ -38,7 +38,7 @@
 
 <div class="screen night-bg">
   <div class="topbar">
-    <span class="logo">🎩 গোয়েন্দাগিরি</span>
+    <span class="logo">🎩 {$lang === 'bn' ? 'গোয়েন্দাগিরি' : 'Goyendagiri'}</span>
     <span class="chip">{$t('খুন পর্ব · Night')}</span>
     <NetStatus />
   </div>

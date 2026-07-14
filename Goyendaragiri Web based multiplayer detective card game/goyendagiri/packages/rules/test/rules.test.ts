@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createLobby, addPlayer, start, apply, buildViewFor, rng,
+  EVIDENCE_DECK, MEANS_DECK,
   type GameState, type Role,
 } from '../src/index.js';
 
@@ -110,6 +111,24 @@ describe('setup & roles', () => {
       expect(r.error).toBeUndefined();
       expect(r.next.seats.find(x => x.role === 'detective')!.isBot).toBeFalsy();
     }
+  });
+  it('smart shuffle: killer cards nearly always have a category twin in another hand', () => {
+    let uncovered = 0, total = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = started(6, seed);
+      const mur = s.seats.find(x => x.role === 'murderer')!;
+      for (const c of [...mur.evidence, ...mur.means]) {
+        total++;
+        const twin = s.seats.some(o => o.seat !== mur.seat &&
+          [...o.evidence, ...o.means].some(x => x.type === c.type && !!x.tag && x.tag === c.tag));
+        if (!twin) uncovered++;
+      }
+    }
+    // ≥95% of the killer's cards must be ambiguous across 30 different deals
+    expect(uncovered / total).toBeLessThan(0.05);
+  });
+  it('every content card carries a tag', () => {
+    for (const c of [...EVIDENCE_DECK, ...MEANS_DECK]) expect(!!c.tag).toBe(true);
   });
 });
 

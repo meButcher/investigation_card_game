@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createRoom, joinRoom, connError } from '../lib/net';
-  import { t } from '../lib/lang';
+  import { lang, t } from '../lib/lang';
   let name = '';
   let code = new URLSearchParams(location.search).get('room') ?? '';
   let busy = false;
@@ -10,7 +10,7 @@
 
 <div class="screen" style="align-items:center;justify-content:center">
   <div class="panel" style="width:min(420px,92vw)">
-    <h1 style="color:var(--gold);font-size:1.8rem;text-align:center;margin-bottom:2px">🎩 গোয়েন্দাগিরি</h1>
+    <h1 style="color:var(--gold);font-size:1.8rem;text-align:center;margin-bottom:2px">🎩 {$lang === 'bn' ? 'গোয়েন্দাগিরি' : 'Goyendagiri'}</h1>
     <p class="dim" style="text-align:center;font-size:.8rem;margin-bottom:18px">{$t('সত্যের সন্ধানে · Detect. Deceive. Discover.')}</p>
 
     <label class="dim" for="playerName" style="font-size:.75rem">{$t('তোমার নাম · Your name')}</label>

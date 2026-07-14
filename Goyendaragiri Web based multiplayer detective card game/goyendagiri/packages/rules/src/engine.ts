@@ -1,6 +1,6 @@
 // ─── Goyendagiri rules engine — authoritative reducer + view filter. ─────────
 // Every ruling traces to the design doc §3.4/§3.5. Pure functions, no deps.
-import type { Action, ApplyResult, ClientView, GameSettings, GameState, PublicSeat, Role, Seat, Tile } from './types.js';
+import type { Action, ApplyResult, Card, ClientView, GameSettings, GameState, PublicSeat, Role, Seat, Tile } from './types.js';
 import { CAUSE_TILE, EVIDENCE_DECK, LOCATION_TILES, MEANS_DECK, SCENE_TILES } from './content.js';
 
 export function rng(seed: number) {
@@ -79,18 +79,48 @@ function deal(s: GameState, rand: () => number): GameState {
     }
   }
 
-  const evDeck = shuffled(EVIDENCE_DECK, rand);
-  const mnDeck = shuffled(MEANS_DECK, rand);
   const k = s.settings.difficulty;
+
+  // ── smart shuffle (v1.8): re-deal until every card in the murderer's hand shares
+  // its hidden tag with a card in some OTHER hand, and overall coverage is high.
+  // Whatever the killer picks, the detective's clues then fit several suspects —
+  // it's still "just a shuffle", so nothing looks forced.
+  const murIdx = order.findIndex(r => r === 'murderer');
+  const dealOnce = () => {
+    const evDeck = shuffled(EVIDENCE_DECK, rand);
+    const mnDeck = shuffled(MEANS_DECK, rand);
+    return s.seats.map((_, i) => order[i] === 'detective'
+      ? { evidence: [] as Card[], means: [] as Card[] }
+      : { evidence: evDeck.splice(0, k), means: mnDeck.splice(0, k) });
+  };
+  const coverage = (hands: { evidence: Card[]; means: Card[] }[]) => {
+    let covered = 0, total = 0, murOk = true;
+    for (let i = 0; i < hands.length; i++) {
+      for (const c of [...hands[i].evidence, ...hands[i].means]) {
+        total++;
+        const twin = c.tag && hands.some((h, j) => j !== i &&
+          [...h.evidence, ...h.means].some(o => o.type === c.type && o.tag === c.tag));
+        if (twin) covered++;
+        else if (i === murIdx) murOk = false;
+      }
+    }
+    return { score: total ? covered / total : 1, murOk };
+  };
+  let hands = dealOnce();
+  let best = coverage(hands);
+  for (let tries = 0; tries < 40 && !(best.murOk && best.score >= 0.9); tries++) {
+    const h = dealOnce();
+    const c = coverage(h);
+    if ((c.murOk && !best.murOk) || (c.murOk === best.murOk && c.score > best.score)) { hands = h; best = c; }
+  }
 
   const seats: Seat[] = s.seats.map((seat, i) => {
     const role = order[i];
-    const isDet = role === 'detective';
     return {
       ...seat, ready: false, role,
-      evidence: isDet ? [] : evDeck.splice(0, k),
-      means: isDet ? [] : mnDeck.splice(0, k),
-      hasInvestigationCard: !isDet,
+      evidence: hands[i].evidence,
+      means: hands[i].means,
+      hasInvestigationCard: role !== 'detective',
     };
   });
 

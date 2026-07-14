@@ -7,7 +7,7 @@ export type Phase =
   | 'evidence' | 'presentation' | 'finalVote'
   | 'witnessHunt' | 'gameOver';
 
-export interface Card { id: string; type: 'evidence' | 'means'; bn: string; en: string; icon: string }
+export interface Card { id: string; type: 'evidence' | 'means'; bn: string; en: string; icon: string; /** hidden theme used by the smart shuffler — never shown in UI */ tag?: string }
 export interface TileWord { bn: string; en: string }
 export interface Tile { id: string; kind: 'cause' | 'location' | 'scene'; bn: string; en: string; words: TileWord[] }
 

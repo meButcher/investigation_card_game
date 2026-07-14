@@ -82,7 +82,7 @@
   $: huntTargets = v.seats.filter(s => !s.isDetective && s.revealedRole !== 'murderer' && s.revealedRole !== 'accomplice');
 
   const roleShort: Record<string, string> = {
-    detective: '🎩 গোয়েন্দা', murderer: '🗡 খুনী', accomplice: '🤝 সহযোগী', witness: '🕯 সাক্ষী', investigator: '🔎 তদন্তকারী',
+    detective: '🎩 গোয়েন্দা · Detective', murderer: '🗡 খুনী · Murderer', accomplice: '🤝 সহযোগী · Accomplice', witness: '🕯 সাক্ষী · Witness', investigator: '🔎 তদন্তকারী · Investigator',
   };
   const roleColor: Record<string, string> = {
     detective: 'var(--gold)', murderer: 'var(--danger)', accomplice: '#e08a3c', witness: '#9b6dd6', investigator: 'var(--good)',
@@ -106,7 +106,7 @@
 
 <div class="screen">
   <div class="topbar">
-    <span class="logo">🎩 গোয়েন্দাগিরি</span>
+    <span class="logo">🎩 {$lang === 'bn' ? 'গোয়েন্দাগিরি' : 'Goyendagiri'}</span>
     <span class="chip">
       {v.phase === 'evidence' ? $t(`তদন্ত · Round ${v.round} — Evidence`) :
        v.phase === 'presentation' ? `Round ${v.round} — Presentation` :
@@ -214,7 +214,7 @@
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.78rem">
               <span class="avatar">🕵</span><b>{s.name}</b>
               {#if s.seat === currentSeat}<span style="font-size:.62rem">🎤</span>{/if}
-              {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{roleShort[knownRole(s.seat) ?? '']}</span>{/if}
+              {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{$t(roleShort[knownRole(s.seat) ?? ''] ?? '')}</span>{/if}
               <span class="badge" class:spent={!s.hasInvestigationCard} class:you={s.seat === v.seat} style="margin-left:auto">
                 {s.seat === v.seat ? 'YOU' : s.hasInvestigationCard ? '🔍' : '🔍✗'}
               </span>
@@ -273,7 +273,7 @@
           <p class="dim rail-label cards-owner">
             🕵 <b>{s.name}</b>
             {#if s.seat === currentSeat}🎤{/if}
-            {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{roleShort[knownRole(s.seat) ?? '']}</span>{/if}
+            {#if knownRole(s.seat)}<span class="badge" style="border-color:{roleColor[knownRole(s.seat) ?? '']};color:{roleColor[knownRole(s.seat) ?? '']}">{$t(roleShort[knownRole(s.seat) ?? ''] ?? '')}</span>{/if}
             <span class="badge" class:spent={!s.hasInvestigationCard}>{s.hasInvestigationCard ? '🔍' : '🔍✗'}</span>
           </p>
           <div class="cards-wrap">
@@ -309,7 +309,7 @@
     <div class="mobile-sheet panel">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:.85rem">
         <span class="avatar">🕵</span><b>{openSeat.name}</b>
-        {#if knownRole(openSeat.seat)}<span class="badge" style="border-color:{roleColor[knownRole(openSeat.seat) ?? '']};color:{roleColor[knownRole(openSeat.seat) ?? '']}">{roleShort[knownRole(openSeat.seat) ?? '']}</span>{/if}
+        {#if knownRole(openSeat.seat)}<span class="badge" style="border-color:{roleColor[knownRole(openSeat.seat) ?? '']};color:{roleColor[knownRole(openSeat.seat) ?? '']}">{$t(roleShort[knownRole(openSeat.seat) ?? ''] ?? '')}</span>{/if}
         <button class="btn ghost" style="margin-left:auto;padding:2px 10px" on:click={() => openSuspect = null}>✕</button>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
